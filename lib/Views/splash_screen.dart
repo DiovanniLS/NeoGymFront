@@ -1,129 +1,189 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:neogym/Views/login_page.dart';
+import 'package:neogym/Resources/neo_gym_colors.dart';
+import 'package:neogym/Views/escolher_perfil.dart';
 
-class SplashScreen extends StatelessWidget {
+class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
-  static const primaryColor = Color(0xFFFF6B00);
+
+  @override
+  State<SplashScreen> createState() => _SplashScreenState();
+}
+
+class _SplashScreenState extends State<SplashScreen> {
+
+  final TextEditingController emailValue = TextEditingController();
+  final TextEditingController passValue = TextEditingController();
+
+  bool isPasswordVisible = false;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[200],
+
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
-          child: Column(
-            children: [
-              SvgPicture.asset(
-                'assets/images/logo+nome.svg',
-                height: 100,
-                colorFilter: const ColorFilter.mode(
-                  primaryColor,
-                  BlendMode.srcIn,
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+
+                SvgPicture.asset(
+                  'assets/images/logo+nome.svg',
+                  height: 90,
+                  colorFilter: const ColorFilter.mode(
+                    NeoGymColors.primary,
+                    BlendMode.srcIn,
+                  ),
                 ),
-              ),
 
-              const SizedBox(height: 100),
+                const SizedBox(height: 20),
 
-              Column(
-                children: [
-                  const Text(
-                    'Escolha seu perfil',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: primaryColor,
+                const Text(
+                  "Bem-vindo",
+                  style: TextStyle(
+                    fontSize: 34,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+
+                const SizedBox(height: 40),
+
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        blurRadius: 20,
+                        color: Colors.black.withOpacity(0.08),
+                        offset: const Offset(0, 10),
+                      )
+                    ],
+                  ),
+
+                  child: Column(
+                    children: [
+
+                      TextField(
+                        controller: emailValue,
+                        keyboardType: TextInputType.emailAddress,
+                        decoration: InputDecoration(
+                          hintText: "Digite seu e-mail",
+                          prefixIcon: const Icon(
+                            Icons.email,
+                            color: NeoGymColors.primary,
+                          ),
+                          filled: true,
+                          fillColor: Colors.grey[100],
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      TextField(
+                        controller: passValue,
+                        obscureText: !isPasswordVisible,
+                        decoration: InputDecoration(
+                          hintText: "Digite sua senha",
+                          prefixIcon: const Icon(
+                            Icons.lock,
+                            color: NeoGymColors.primary,
+                          ),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              isPasswordVisible
+                                  ? Icons.visibility
+                                  : Icons.visibility_off,
+                              color: NeoGymColors.primary,
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                isPasswordVisible = !isPasswordVisible;
+                              });
+                            },
+                          ),
+                          filled: true,
+                          fillColor: Colors.grey[100],
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      SizedBox(
+                        width: double.infinity,
+                        height: 50,
+                        child: ElevatedButton(
+                          onPressed: () {},
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: NeoGymColors.primary,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: const Text(
+                            "Entrar",
+                            style: TextStyle(fontSize: 16),
+                          ),
+                        ),
+                      ),
+
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text("Não possui conta?"),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const EscolherPerfil()),
+                        );
+                      },
+                      child: const Text(
+                        "Criar conta",
+                        style: TextStyle(
+                          color: NeoGymColors.primary,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 60,),
-                  ProfileLineCard(
-                    label: 'Aluno',
-                    icon: Icons.sports_gymnastics,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const LoginPage()),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  ProfileLineCard(
-                    label: 'Nutricionista',
-                    icon: Icons.energy_savings_leaf,
-                    onTap: () {}
-                  ),
-                  const SizedBox(height: 16),
-                  ProfileLineCard(
-                    label: 'Personal Trainer',
-                    icon: Icons.fitness_center,
-                    onTap: () {
-                    },
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class ProfileLineCard extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final VoidCallback onTap;
-
-  const ProfileLineCard({
-    super.key,
-    required this.label,
-    required this.icon,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        height: 60,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black12,
-              blurRadius: 4,
-              offset: const Offset(0, 2),
-            )
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 60,
-              height: double.maxFinite,
-              decoration: BoxDecoration(
-                color: const Color(0xFFFF6B00),
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(14),
-                  bottomLeft: Radius.circular(14),
+                  ],
                 ),
-              ),
-              child: Icon(icon, color: Colors.white, size: 30),
+                const SizedBox(height: 20),
+
+                Row(
+                  children: [
+                    Expanded(child: Divider(color: Colors.grey)),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      child: Text(
+                        "ou entre com",
+                        style: TextStyle(color: Colors.grey[600]),
+                      ),
+                    ),
+                    Expanded(child: Divider(color: Colors.grey)),
+                  ],
+                ),
+              ],
             ),
-            const SizedBox(width: 16),
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );

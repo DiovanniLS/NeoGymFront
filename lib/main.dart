@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:neogym/Resources/neo_gym_colors.dart';
-import 'package:neogym/Views/login_page.dart';
-
 import 'Views/splash_screen.dart';
 
 void main() {
