@@ -18,7 +18,7 @@ class MyApp extends StatelessWidget {
       title: 'Flutter Demo',
       theme: neoGymTheme,
       debugShowCheckedModeBanner: false,
-      home: const LoginPage(),
+      home: const SplashScreen(),
     );
   }
 }
