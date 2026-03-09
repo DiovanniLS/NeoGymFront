@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:neogym/Views/envio_documento.dart';
+import 'package:neogym/components/cadastro_stepper.dart';
 import 'package:neogym/utils/phone_input_formatter.dart';
 
 import '../Resources/neo_gym_colors.dart';
@@ -11,6 +13,7 @@ class CadastroNutricionista extends StatefulWidget {
   State<CadastroNutricionista> createState() => _CadastroNutricionistaState();
 }
 
+
 class _CadastroNutricionistaState extends State<CadastroNutricionista> {
 
   bool rememberPass = false;
@@ -20,6 +23,18 @@ class _CadastroNutricionistaState extends State<CadastroNutricionista> {
   final TextEditingController passValue = TextEditingController();
   final TextEditingController rememberValue = TextEditingController();
   bool isPasswordVisible = false;
+
+
+
+  @override
+  void dispose() {
+    nameValue.dispose();
+    emailValue.dispose();
+    phoneValue.dispose();
+    passValue.dispose();
+    rememberValue.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -41,12 +56,12 @@ class _CadastroNutricionistaState extends State<CadastroNutricionista> {
               children: [
                 Padding(
                   padding: const EdgeInsets.only(top: 60),
-                  child: buildStepIndicator(),
+                  child: CadastroStepper(step: 1),
                 ),
                 Container(
                   margin: EdgeInsets.only(top: 60),
                   child: TextField(
-                    controller: emailValue,
+                    controller: nameValue,
                     decoration: InputDecoration(
                       filled: true,
                       fillColor: Colors.white,
@@ -76,7 +91,7 @@ class _CadastroNutricionistaState extends State<CadastroNutricionista> {
                 const SizedBox(height: 16),
                 TextField(
                   controller: phoneValue,
-                  keyboardType: TextInputType.number,
+                  keyboardType: TextInputType.phone,
                   inputFormatters: [
                     PhoneInputFormatter()
                   ],
@@ -166,7 +181,18 @@ class _CadastroNutricionistaState extends State<CadastroNutricionista> {
                   width: double.infinity,
                   height: 50,
                   child: ElevatedButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => EnvioDocumento(
+                            nome: nameValue.text,
+                            email: emailValue.text,
+                            telefone: phoneValue.text,
+                          ),
+                        ),
+                      );
+                    },
                     style: ElevatedButton.styleFrom(
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -183,80 +209,6 @@ class _CadastroNutricionistaState extends State<CadastroNutricionista> {
           ),
         ),
       ),
-    );
-  }
-
-  Widget buildStepIndicator() {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: Column(
-            children: [
-              Container(
-                width: 32,
-                height: 32,
-                decoration: const BoxDecoration(
-                  color: NeoGymColors.primary,
-                  shape: BoxShape.circle,
-                ),
-                child: const Center(
-                  child: Text(
-                    "1",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 6),
-              const Text(
-                "Cadastro de dados pessoais",
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 12),
-              ),
-            ],
-          ),
-        ),
-
-        Container(
-          width: 40,
-          height: 2,
-          margin: const EdgeInsets.only(top: 15),
-          color: Colors.grey,
-        ),
-
-        Expanded(
-          child: Column(
-            children: [
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: Colors.grey[400],
-                  shape: BoxShape.circle,
-                ),
-                child: const Center(
-                  child: Text(
-                    "2",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 6),
-              const Text(
-                "Validação de documentos",
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 12),
-              ),
-            ],
-          ),
-        ),
-      ],
     );
   }
 

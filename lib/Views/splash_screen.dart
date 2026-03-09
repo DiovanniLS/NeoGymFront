@@ -181,6 +181,38 @@ class _SplashScreenState extends State<SplashScreen> {
                     Expanded(child: Divider(color: Colors.grey)),
                   ],
                 ),
+                const SizedBox(height: 20),
+
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+
+                    InkWell(
+                      onTap: () {
+                        // login google
+                      },
+                      child: CircleAvatar(
+                        radius: 30,
+                        backgroundColor: Colors.white,
+                        child: SvgPicture.asset("assets/images/icons8-google.svg")
+                      ),
+                    ),
+
+                    const SizedBox(width: 20),
+
+                    InkWell(
+                      onTap: () {
+                        // login facebook
+                      },
+                      child: CircleAvatar(
+                        radius: 30,
+                        backgroundColor: Colors.white,
+                        child: SvgPicture.asset("assets/images/icons8-facebook-logo.svg")
+                      ),
+                    ),
+
+                  ],
+                ),
               ],
             ),
           ),
