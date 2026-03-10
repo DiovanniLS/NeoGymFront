@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:neogym/Views/cadastro_aluno.dart';
-import 'package:neogym/Views/cadastro_nutricionista.dart';
+import 'package:neogym/Views/cadastro_Profissional.dart';
 
 class EscolherPerfil extends StatelessWidget {
   const EscolherPerfil({super.key});
@@ -56,7 +56,7 @@ class EscolherPerfil extends StatelessWidget {
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (_) => const CadastroNutricionista()),
+                        MaterialPageRoute(builder: (_) => const CadastroProfissional(proType: 'Nutri',)),
                       );
                     }
                   ),
@@ -65,6 +65,10 @@ class EscolherPerfil extends StatelessWidget {
                     label: 'Personal Trainer',
                     icon: Icons.fitness_center,
                     onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const CadastroProfissional(proType: 'Personal',)),
+                      );
                     },
                   ),
                 ],

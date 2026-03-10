@@ -51,95 +51,88 @@ class _SplashScreenState extends State<SplashScreen> {
 
                 const SizedBox(height: 40),
 
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        blurRadius: 20,
-                        color: Colors.black.withOpacity(0.08),
-                        offset: const Offset(0, 10),
-                      )
-                    ],
+                Card(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadiusGeometry.circular(16)
                   ),
-
-                  child: Column(
-                    children: [
-
-                      TextField(
-                        controller: emailValue,
-                        keyboardType: TextInputType.emailAddress,
-                        decoration: InputDecoration(
-                          hintText: "Digite seu e-mail",
-                          prefixIcon: const Icon(
-                            Icons.email,
-                            color: NeoGymColors.primary,
-                          ),
-                          filled: true,
-                          fillColor: Colors.grey[100],
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide.none,
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 16),
-
-                      TextField(
-                        controller: passValue,
-                        obscureText: !isPasswordVisible,
-                        decoration: InputDecoration(
-                          hintText: "Digite sua senha",
-                          prefixIcon: const Icon(
-                            Icons.lock,
-                            color: NeoGymColors.primary,
-                          ),
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              isPasswordVisible
-                                  ? Icons.visibility
-                                  : Icons.visibility_off,
+                  elevation: 4,
+                  child: Container(
+                    padding: EdgeInsetsGeometry.all(16),
+                    child: Column(
+                      children: [
+                        TextField(
+                          controller: emailValue,
+                          keyboardType: TextInputType.emailAddress,
+                          decoration: InputDecoration(
+                            hintText: "Digite seu e-mail",
+                            prefixIcon: const Icon(
+                              Icons.email,
                               color: NeoGymColors.primary,
                             ),
-                            onPressed: () {
-                              setState(() {
-                                isPasswordVisible = !isPasswordVisible;
-                              });
-                            },
-                          ),
-                          filled: true,
-                          fillColor: Colors.grey[100],
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide.none,
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      SizedBox(
-                        width: double.infinity,
-                        height: 50,
-                        child: ElevatedButton(
-                          onPressed: () {},
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: NeoGymColors.primary,
-                            shape: RoundedRectangleBorder(
+                            filled: true,
+                            fillColor: Colors.grey[100],
+                            border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide.none,
                             ),
                           ),
-                          child: const Text(
-                            "Entrar",
-                            style: TextStyle(fontSize: 16),
+                        ),
+                    
+                        const SizedBox(height: 16),
+                    
+                        TextField(
+                          controller: passValue,
+                          obscureText: !isPasswordVisible,
+                          decoration: InputDecoration(
+                            hintText: "Digite sua senha",
+                            prefixIcon: const Icon(
+                              Icons.lock,
+                              color: NeoGymColors.primary,
+                            ),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                isPasswordVisible
+                                    ? Icons.visibility
+                                    : Icons.visibility_off,
+                                color: NeoGymColors.primary,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  isPasswordVisible = !isPasswordVisible;
+                                });
+                              },
+                            ),
+                            filled: true,
+                            fillColor: Colors.grey[100],
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide.none,
+                            ),
                           ),
                         ),
-                      ),
-
-                    ],
+                    
+                        const SizedBox(height: 24),
+                    
+                        SizedBox(
+                          width: double.infinity,
+                          height: 50,
+                          child: ElevatedButton(
+                            onPressed: () {},
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: NeoGymColors.primary,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: const Text(
+                              "Entrar",
+                              style: TextStyle(fontSize: 16),
+                            ),
+                          ),
+                        ),
+                    
+                      ],
+                    ),
                   ),
                 ),
 

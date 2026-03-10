@@ -7,12 +7,14 @@ class EnvioDocumento extends StatelessWidget {
   final String nome;
   final String email;
   final String telefone;
+  final String tipo;
 
   const EnvioDocumento({
     super.key,
     required this.nome,
     required this.email,
     required this.telefone,
+    required this.tipo,
   });
 
 
@@ -54,8 +56,8 @@ class EnvioDocumento extends StatelessWidget {
 
             uploadCard(
               icon: Icons.assignment_ind,
-              title: "Registro CRN",
-              subtitle: "Documento profissional do nutricionista",
+              title: tipo == 'Nutri' ? "Registro CRN" : 'Registro CREF',
+              subtitle: tipo == 'Nutri' ? "Documento profissional do nutricionista" : "Documento profissional do personal trainer",
             ),
 
             const Spacer(),
@@ -82,55 +84,51 @@ class EnvioDocumento extends StatelessWidget {
     required String title,
     required String subtitle,
   }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-
-        border: Border.all(
-          color: Colors.grey.shade300,
-        ),
+    return Card(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadiusGeometry.circular(16)
       ),
-
-      child: Row(
-        children: [
-
-          Icon(
-            icon,
-            color: NeoGymColors.primary,
-            size: 32,
-          ),
-
-          const SizedBox(width: 16),
-
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-
-                Text(
-                  subtitle,
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                  ),
-                ),
-
-              ],
+      elevation: 4,
+      child: Container(
+        padding: EdgeInsetsGeometry.all(16),
+        child: Row(
+          children: [
+        
+            Icon(
+              icon,
+              color: NeoGymColors.primary,
+              size: 32,
             ),
-          ),
-
-          const Icon(Icons.upload_file)
-
-        ],
+        
+            const SizedBox(width: 16),
+        
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+        
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+        
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      color: Colors.grey[600],
+                    ),
+                  ),
+        
+                ],
+              ),
+            ),
+        
+            const Icon(Icons.upload_file)
+        
+          ],
+        ),
       ),
     );
   }
