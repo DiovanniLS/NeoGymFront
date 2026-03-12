@@ -68,6 +68,7 @@ flutter:
     - assets/images/logo_NG.svg
     - assets/images/icons8-google.svg
     - assets/images/icons8-facebook-logo.svg
+    - assets/images/academia.png
   #   - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:neogym/Resources/neo_gym_colors.dart';
+import 'package:neogym/Views/escolher_academia.dart';
 import 'package:neogym/components/input_field.dart';
 
 class CadastroAluno extends StatefulWidget {
@@ -125,7 +126,12 @@ class _LoginPageState extends State<CadastroAluno> {
                   width: double.infinity,
                   height: 50,
                   child: ElevatedButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const EscolherAcademia()),
+                      );
+                    },
                     style: ElevatedButton.styleFrom(
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
