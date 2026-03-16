@@ -95,6 +95,7 @@ lib/
 ## 👨‍💻 Desenvolvido por
 
 **Diovanni Lucas Soares de Paula**
+
 **Guilherme de Araújo Souza**
 
 Estudantes de **Desenvolvimento de Software Multiplataforma – FATEC Diadema**
