@@ -84,31 +84,20 @@ lib/
 
 ## 🚧 Funcionalidades futuras
 
-* Cadastro e login de usuários
+* Cadastro e login de usuários funcional
 * Cadastro de profissionais (personal trainers e nutricionistas)
 * Sistema de agendamento
 * Avaliações de academias e profissionais
 * Integração com backend
-* Sistema de planos e assinatura
-
+* Chat com profissionais
 ---
 
 ## 👨‍💻 Desenvolvido por
 
 **Diovanni Lucas Soares de Paula**
-**Guilherme de Araújo Souza"
+**Guilherme de Araújo Souza**
 
-Estudante de **Desenvolvimento de Software Multiplataforma – FATEC Diadema**
-
-Interesses:
-
-* Front-end
-* UI/UX
-* Desenvolvimento mobile
-* Tecnologias web*
-*comunicação com back-end*
-
----
+Estudantes de **Desenvolvimento de Software Multiplataforma – FATEC Diadema**
 
 ## 📄 Licença
 
