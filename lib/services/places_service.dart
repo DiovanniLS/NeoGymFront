@@ -1,11 +1,12 @@
 import 'dart:convert';
 import 'dart:math';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import '../models/gym.dart';
 
 class PlacesService {
 
-  static const apiKey = "AIzaSyBl3RxHZFB4SoCIq5wnE12USlS8rUreSts";
+  static final apiKey = dotenv.env['PLACES_KEY'];
 
   /// Buscar academias próximas
   static Future<List<Gym>> searchGyms(
@@ -13,6 +14,7 @@ class PlacesService {
       double lng,
       ) async {
 
+    print("API KEY: $apiKey");
     final url = Uri.parse(
         "https://maps.googleapis.com/maps/api/place/nearbysearch/json"
             "?location=$lat,$lng"
@@ -23,6 +25,9 @@ class PlacesService {
     );
 
     final response = await http.get(url);
+
+    print("STATUS HTTP: ${response.statusCode}");
+    print("BODY: ${response.body}");
 
     final data = jsonDecode(response.body);
 

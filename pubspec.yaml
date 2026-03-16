@@ -38,6 +38,7 @@ dependencies:
   google_maps_flutter: ^2.14.2
   geolocator: ^14.0.2
   http: ^1.6.0
+  flutter_dotenv: ^6.0.0
 
 dev_dependencies:
   flutter_test:
@@ -69,6 +70,7 @@ flutter:
     - assets/images/icons8-google.svg
     - assets/images/icons8-facebook-logo.svg
     - assets/images/academia.png
+    - .env
   #   - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see
