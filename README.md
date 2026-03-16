@@ -1,3 +1,5 @@
+
+![Logo NG](assets/images/logo+nome.png)
 # NeoGym – Frontend
 
 Aplicativo mobile desenvolvido em **Flutter** com o objetivo de conectar usuários a **academias, personal trainers e nutricionistas**, facilitando o acesso a profissionais da área fitness e promovendo uma experiência mais prática para quem busca melhorar sua saúde e desempenho físico.
