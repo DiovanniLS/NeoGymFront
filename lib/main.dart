@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:neogym/Resources/neo_gym_colors.dart';
+import 'package:neogym/Views/chat_screen.dart';
+import 'package:neogym/Views/configuracoes.dart';
+import 'package:neogym/Views/home.dart';
+import 'package:neogym/Views/profissionais.dart';
+import 'Views/map_screen.dart';
 import 'Views/splash_screen.dart';
 
 Future<void> main() async {
@@ -15,10 +20,17 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      initialRoute: "/",
+      routes: {
+        "/": (context) => SplashScreen(),
+        "/home": (context) => HomeScreen(),
+        "/gymMap": (context) => MapScreen(),
+        "/config": (context) => Configuracoes(),
+        "/profissionais": (context) => Profissionais(),
+        "/chat": (context) => ChatScreen()
+      },
       theme: neoGymTheme,
       debugShowCheckedModeBanner: false,
-      home: const SplashScreen(),
     );
   }
 }

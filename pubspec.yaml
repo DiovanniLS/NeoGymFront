@@ -64,12 +64,10 @@ flutter:
 
   # To add assets to your application, add an assets section, like this:
   assets:
+    - assets/icons/
     - assets/images/logo+nome.png
     - assets/images/logo+nome.svg
     - assets/images/logo_NG.svg
-    - assets/images/icons8-google.svg
-    - assets/images/icons8-facebook-logo.svg
-    - assets/images/academia.png
     - .env
   #   - images/a_dot_ham.jpeg
 

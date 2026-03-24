@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:neogym/Resources/neo_gym_colors.dart';
+import 'package:neogym/Views/home.dart';
 
 import '../services/location_service.dart';
 import '../services/places_service.dart';
@@ -231,7 +232,7 @@ class _EscolherAcademiaState extends State<EscolherAcademia> {
 
               ElevatedButton(
                 onPressed: () {
-                  print("Academia selecionada: ${selectedGym!.name}");
+                  Navigator.of(context).pushNamed("/home");
                 },
                 child: Text("Selecionar"),
               ),

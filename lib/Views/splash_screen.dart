@@ -187,7 +187,7 @@ class _SplashScreenState extends State<SplashScreen> {
                       child: CircleAvatar(
                         radius: 30,
                         backgroundColor: Colors.white,
-                        child: SvgPicture.asset("assets/images/icons8-google.svg")
+                        child: SvgPicture.asset("assets/icons/icons8-google.svg")
                       ),
                     ),
 
@@ -200,7 +200,7 @@ class _SplashScreenState extends State<SplashScreen> {
                       child: CircleAvatar(
                         radius: 30,
                         backgroundColor: Colors.white,
-                        child: SvgPicture.asset("assets/images/icons8-facebook-logo.svg")
+                        child: SvgPicture.asset("assets/icons/icons8-facebook-logo.svg")
                       ),
                     ),
 
