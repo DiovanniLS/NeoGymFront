@@ -1,3 +1,7 @@
+import 'dart:typed_data';
+import 'package:flutter/services.dart';
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:neogym/Resources/neo_gym_colors.dart';
@@ -37,10 +41,7 @@ class _EscolherAcademiaState extends State<EscolherAcademia> {
 
     userLocation = LatLng(pos.latitude, pos.longitude);
 
-    gymIcon ??= await BitmapDescriptor.fromAssetImage(
-      const ImageConfiguration(size: Size(64, 64)),
-      "assets/images/academia.png",
-    );
+    gymIcon ??= await getCustomMarker("assets/icons/academia.png");
 
     final gyms = await PlacesService.searchGyms(pos.latitude, pos.longitude);
 
@@ -232,7 +233,10 @@ class _EscolherAcademiaState extends State<EscolherAcademia> {
 
               ElevatedButton(
                 onPressed: () {
-                  Navigator.of(context).pushNamed("/home");
+                  Navigator.of(context).pushNamed(
+                    "/home",
+                    arguments: selectedGym,
+                  );
                 },
                 child: Text("Selecionar"),
               ),
@@ -241,5 +245,23 @@ class _EscolherAcademiaState extends State<EscolherAcademia> {
         ),
       ),
     );
+  }
+
+
+  Future<BitmapDescriptor> getCustomMarker(String path) async {
+    final ByteData data = await rootBundle.load(path);
+    final Uint8List bytes = data.buffer.asUint8List();
+
+    final codec = await ui.instantiateImageCodec(
+      bytes,
+      targetWidth: 100, // tamanho do ícone
+    );
+
+    final frame = await codec.getNextFrame();
+    final byteData = await frame.image.toByteData(
+      format: ui.ImageByteFormat.png,
+    );
+
+    return BitmapDescriptor.fromBytes(byteData!.buffer.asUint8List());
   }
 }
