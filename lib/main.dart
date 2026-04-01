@@ -5,6 +5,7 @@ import 'package:neogym/Views/chat_screen.dart';
 import 'package:neogym/Views/configuracoes.dart';
 import 'package:neogym/Views/home.dart';
 import 'package:neogym/Views/profissionais.dart';
+import 'Views/lista_de_exercícios.dart';
 import 'Views/map_screen.dart';
 import 'Views/splash_screen.dart';
 
@@ -27,7 +28,8 @@ class MyApp extends StatelessWidget {
         "/gymMap": (context) => MapScreen(),
         "/config": (context) => Configuracoes(),
         "/profissionais": (context) => Profissionais(),
-        "/chat": (context) => ChatScreen()
+        "/chat": (context) => ChatScreen(),
+        '/workouts': (context) => const WorkoutListScreen(),
       },
       theme: neoGymTheme,
       debugShowCheckedModeBanner: false,

@@ -214,7 +214,9 @@ class _HomeContentState extends State<HomeContent> {
         ],
       ),
       button: ElevatedButton(
-        onPressed: () {},
+          onPressed: () {
+            Navigator.pushNamed(context, '/workouts');
+          },
         child: const Text('Ver Ficha'),
       ),
     );
