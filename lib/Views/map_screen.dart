@@ -245,7 +245,7 @@ class _MapScreenState extends State<MapScreen> {
     }
 
     return Positioned(
-      bottom: 20,
+      bottom: 50,
       left: 16,
       right: 16,
       child: Card(

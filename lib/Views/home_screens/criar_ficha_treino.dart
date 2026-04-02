@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:neogym/components/universal_app_bar.dart';
 
-import '../models/exercise.dart';
-import '../models/workout.dart';
+import '../../models/exercise.dart';
+import '../../models/workout.dart';
 
 class CreateWorkoutScreen extends StatefulWidget {
   const CreateWorkoutScreen({super.key});
@@ -38,7 +39,7 @@ class _CreateWorkoutScreenState extends State<CreateWorkoutScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Criar ficha")),
+      appBar: UniversalAppBar(title: "Criar ficha"),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(

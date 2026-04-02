@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:neogym/components/universal_app_bar.dart';
 
-import '../models/workout.dart';
+import '../../models/workout.dart';
 
 class WorkoutDetailScreen extends StatelessWidget {
   final Workout workout;
@@ -10,7 +11,7 @@ class WorkoutDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(workout.title)),
+      appBar: UniversalAppBar(title: workout.title),
       body: ListView.builder(
         padding: const EdgeInsets.all(16),
         itemCount: workout.exercises.length,

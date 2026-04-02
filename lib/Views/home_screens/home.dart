@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:neogym/Resources/neo_gym_colors.dart';
+
 import 'package:neogym/Views/chat_screen.dart';
 import 'package:neogym/Views/configuracoes.dart';
 import 'package:neogym/Views/profissionais.dart';
 import 'package:neogym/components/app_bottom_nav.dart';
 import 'package:neogym/components/card_principal.dart';
-import '../models/gym.dart';
-import 'map_screen.dart';
+import '../../models/gym.dart';
+import '../map_screen.dart';
 
 enum AppTab { home, map, professionals, chat, settings }
 
@@ -50,10 +50,14 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(index: currentIndex, children: pages),
-      bottomNavigationBar: AppBottomNav(
-        currentIndex: currentIndex,
-        onTap: onTabTapped,
+      body: pages[currentIndex],
+
+      bottomNavigationBar: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+        child: AppBottomNav(
+          currentIndex: currentIndex,
+          onTap: onTabTapped,
+        ),
       ),
     );
   }
@@ -258,7 +262,9 @@ class _HomeContentState extends State<HomeContent> {
         ],
       ),
       button: ElevatedButton(
-        onPressed: () {},
+        onPressed: () {
+          Navigator.pushNamed(context, '/activities');
+        },
         child: const Text("Ver Agenda"),
       ),
     );
