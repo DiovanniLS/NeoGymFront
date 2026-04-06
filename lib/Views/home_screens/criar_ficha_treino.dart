@@ -5,7 +5,10 @@ import '../../models/exercise.dart';
 import '../../models/workout.dart';
 
 class CreateWorkoutScreen extends StatefulWidget {
-  const CreateWorkoutScreen({super.key});
+
+  final Workout? workout;
+
+  const CreateWorkoutScreen({super.key, this.workout});
 
   @override
   State<CreateWorkoutScreen> createState() => _CreateWorkoutScreenState();
@@ -16,6 +19,26 @@ class _CreateWorkoutScreenState extends State<CreateWorkoutScreen> {
 
   List<Exercise> exercises = [];
 
+
+  @override
+  void initState() {
+    super.initState();
+
+    if (widget.workout != null) {
+      titleController.text = widget.workout!.title;
+
+      exercises = widget.workout!.exercises.map((e) {
+        return Exercise(
+          name: e.name,
+          sets: e.sets,
+          reps: e.reps,
+        );
+      }).toList();
+    } else {
+      exercises = [];
+    }
+  }
+
   void addExercise() {
     setState(() {
       exercises.add(
@@ -25,15 +48,13 @@ class _CreateWorkoutScreenState extends State<CreateWorkoutScreen> {
   }
 
   void saveWorkout() {
-    final workout = Workout(
-      id: DateTime.now().toString(),
+    final updatedWorkout = Workout(
+      id: widget.workout?.id ?? DateTime.now().toString(),
       title: titleController.text,
       exercises: exercises,
     );
 
-    print("Workout criado: ${workout.title}");
-
-    Navigator.pop(context, workout);
+    Navigator.pop(context, updatedWorkout);
   }
 
   @override
@@ -74,6 +95,7 @@ class _CreateWorkoutScreenState extends State<CreateWorkoutScreen> {
                           decoration: const InputDecoration(
                             labelText: "Exercício",
                           ),
+                          controller: TextEditingController(text: ex.name),
                           onChanged: (value) {
                             exercises[index] = Exercise(
                               name: value,
@@ -94,6 +116,7 @@ class _CreateWorkoutScreenState extends State<CreateWorkoutScreen> {
                                 decoration: const InputDecoration(
                                   labelText: "Séries",
                                 ),
+                                controller: TextEditingController(text: ex.sets.toString()),
                                 onChanged: (value) {
                                   exercises[index] = Exercise(
                                     name: exercises[index].name,
@@ -112,6 +135,7 @@ class _CreateWorkoutScreenState extends State<CreateWorkoutScreen> {
                                 decoration: const InputDecoration(
                                   labelText: "Reps",
                                 ),
+                                controller: TextEditingController(text: ex.reps.toString()),
                                 onChanged: (value) {
                                   exercises[index] = Exercise(
                                     name: exercises[index].name,

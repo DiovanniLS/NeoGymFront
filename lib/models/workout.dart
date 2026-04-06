@@ -4,8 +4,8 @@ import 'package:neogym/models/exercise.dart';
 
 class Workout {
   final String  id;
-  final String title;
-  final List<Exercise> exercises;
+  String title;
+  List<Exercise> exercises;
 
   Workout({
     required this.id,

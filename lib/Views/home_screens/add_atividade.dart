@@ -4,13 +4,26 @@ import 'package:neogym/components/universal_app_bar.dart';
 import 'package:neogym/models/activity.dart';
 
 class AddAtividade extends StatefulWidget {
-  const AddAtividade({super.key});
+  final Activity? activity;
+  const AddAtividade({super.key, this.activity});
 
   @override
   State<AddAtividade> createState() => _AddAtividadeState();
 }
 
 class _AddAtividadeState extends State<AddAtividade> {
+
+
+  @override
+  void initState() {
+    super.initState();
+
+    if (widget.activity != null) {
+      titleController.text = widget.activity!.title;
+      selectedDate = widget.activity!.dateTime;
+    }
+  }
+
   final titleController = TextEditingController();
 
   DateTime selectedDate = DateTime.now().toLocal();
@@ -24,6 +37,8 @@ class _AddAtividadeState extends State<AddAtividade> {
     "Quinta",
     "Sexta",
   ];
+
+
 
   Future<void> pickDate() async {
     final picked = await showDatePicker(
@@ -85,13 +100,15 @@ class _AddAtividadeState extends State<AddAtividade> {
     return DateFormat("HH:mm", "pt_BR").format(date);
   }
 
+
   void saveActivity() {
     if (titleController.text.isEmpty) return;
 
     final newActivity = Activity(
       title: titleController.text,
-      time: formatTimeBR(selectedDate),
+      time: "${selectedDate.hour.toString().padLeft(2, '0')}:${selectedDate.minute.toString().padLeft(2, '0')}",
       dateTime: selectedDate,
+      done: widget.activity?.done ?? false,
     );
 
     Navigator.pop(context, newActivity);
@@ -100,7 +117,9 @@ class _AddAtividadeState extends State<AddAtividade> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: UniversalAppBar(title: "Nova Atividade"),
+      appBar: UniversalAppBar(
+        title: widget.activity != null ? "Editar atividade" : "Nova atividade",
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(

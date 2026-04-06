@@ -32,12 +32,12 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  late final List<Widget> pages = [
-    HomeContent(),
+  List<Widget> get pages => [
+    const HomeContent(),
     MapScreen(gym: selectedGym),
-    Profissionais(),
-    ChatScreen(),
-    Configuracoes(),
+    const ChatScreen(),
+    const Profissionais(),
+    const Configuracoes(),
   ];
 
   void onTabTapped(int index) {

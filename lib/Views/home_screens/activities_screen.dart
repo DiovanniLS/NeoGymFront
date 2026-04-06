@@ -96,6 +96,23 @@ class _ActivitiesScreenState extends State<ActivitiesScreen> {
           Text(activity.time),
         ],
       ),
+      onTap: () async {
+        final result = await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => AddAtividade(activity: activity),
+          ),
+        );
+
+        if (result != null) {
+          setState(() {
+            final index = activities.indexOf(activity);
+            if (index != -1) {
+              activities[index] = result;
+            }
+          });
+        }
+      },
       trailing: Checkbox(
           value: activity.done,
           onChanged: (value) {

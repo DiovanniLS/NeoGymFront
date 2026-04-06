@@ -2,21 +2,27 @@ import 'package:flutter/material.dart';
 import 'package:neogym/components/universal_app_bar.dart';
 
 import '../../models/workout.dart';
+import 'criar_ficha_treino.dart';
 
-class WorkoutDetailScreen extends StatelessWidget {
+class WorkoutDetailScreen extends StatefulWidget {
   final Workout workout;
 
   const WorkoutDetailScreen({super.key, required this.workout});
 
   @override
+  State<WorkoutDetailScreen> createState() => _WorkoutDetailScreenState();
+}
+
+class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: UniversalAppBar(title: workout.title),
+      appBar: UniversalAppBar(title: widget.workout.title),
       body: ListView.builder(
         padding: const EdgeInsets.all(16),
-        itemCount: workout.exercises.length,
+        itemCount: widget.workout.exercises.length,
         itemBuilder: (context, index) {
-          final ex = workout.exercises[index];
+          final ex = widget.workout.exercises[index];
 
           return Container(
             margin: const EdgeInsets.only(bottom: 12),
@@ -44,6 +50,27 @@ class WorkoutDetailScreen extends StatelessWidget {
           child: const Text("Iniciar treino"),
         ),
       ),
+
+      floatingActionButton: FloatingActionButton(
+        tooltip: "Editar ficha",
+        onPressed: () async {
+          final result = await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => CreateWorkoutScreen(workout: widget.workout),
+            ),
+          );
+
+          if (result != null) {
+            setState(() {
+              widget.workout.title = result.title;
+              widget.workout.exercises = result.exercises;
+            });
+          }
+        },
+        child: const Icon(Icons.edit),
+      ),
+
     );
   }
 }

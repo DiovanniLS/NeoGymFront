@@ -85,13 +85,23 @@ class _WorkoutListScreenState extends State<WorkoutListScreen> {
 
                 trailing: const Icon(Icons.arrow_forward_ios, size: 16),
 
-                onTap: () {
-                  Navigator.push(
+                onTap: () async{
+                  final result = await Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (_) => WorkoutDetailScreen(workout: workout),
                     ),
                   );
+
+                  if (result != null) {
+                    setState(() {
+                      final index = workouts.indexWhere((w) => w.id == result.id);
+
+                      if (index != -1) {
+                        workouts[index] = result;
+                      }
+                    });
+                  }
                 },
 
                 onDelete: () {
