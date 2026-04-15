@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'package:neogym/Views/chat_screen.dart';
+import 'package:neogym/Views/messages_screen.dart';
 import 'package:neogym/Views/configuracoes.dart';
 import 'package:neogym/Views/profissionais.dart';
 import 'package:neogym/components/app_bottom_nav.dart';
@@ -35,7 +35,7 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Widget> get pages => [
     const HomeContent(),
     MapScreen(gym: selectedGym),
-    const ChatScreen(),
+    const MessagesScreen(),
     const Profissionais(),
     const Configuracoes(),
   ];

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:neogym/Views/chat_screen.dart';
 import 'package:neogym/Views/perfil_profissonal.dart';
 
 import '../Resources/neo_gym_colors.dart';
@@ -72,7 +73,14 @@ class _ProfissionaisState extends State<Profissionais> {
                         );
                       },
 
-                      onChat: () {},
+                      onChat: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => ChatScreen(name: prof.name, Image: prof.image,),
+                          ),
+                        );
+                      },
                     );
                   },
                 ),

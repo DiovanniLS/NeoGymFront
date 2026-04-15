@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:neogym/Resources/neo_gym_colors.dart';
-import 'package:neogym/Views/chat_screen.dart';
+import 'package:neogym/Views/messages_screen.dart';
 import 'package:neogym/Views/configuracoes.dart';
 import 'package:neogym/Views/home_screens/activities_screen.dart';
 import 'package:neogym/Views/home_screens/add_atividade.dart';
@@ -42,7 +42,7 @@ class MyApp extends StatelessWidget {
         "/gymMap": (context) => MapScreen(),
         "/config": (context) => Configuracoes(),
         "/profissionais": (context) => Profissionais(),
-        "/chat": (context) => ChatScreen(),
+        "/chat": (context) => MessagesScreen(),
         "/workouts": (context) => WorkoutListScreen(),
         "/activities": (context) => ActivitiesScreen(),
         "/addAtiv": (context) => AddAtividade(),

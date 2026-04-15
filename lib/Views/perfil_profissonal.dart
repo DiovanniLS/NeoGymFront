@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:neogym/Views/chat_screen.dart';
 
 import '../models/professional.dart';
 
@@ -15,7 +16,6 @@ class ProfessionalDetailScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
 
-            // 🖼️ IMAGEM TOPO
             Stack(
               children: [
                 Container(
@@ -109,7 +109,6 @@ class ProfessionalDetailScreen extends StatelessWidget {
 
                     const SizedBox(height: 10),
 
-                    // ⭐ INFO
                     Row(
                       children: [
                         const Icon(Icons.star, color: Colors.orange),
@@ -126,7 +125,14 @@ class ProfessionalDetailScreen extends StatelessWidget {
                       children: [
                         Expanded(
                           child: ElevatedButton.icon(
-                            onPressed: () {},
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => ChatScreen(name: prof.name, Image: prof.image,),
+                                ),
+                              );
+                            },
                             icon: const Icon(Icons.chat),
                             label: const Text("Chat"),
                           ),

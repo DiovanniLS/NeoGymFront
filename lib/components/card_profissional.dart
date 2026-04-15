@@ -64,7 +64,6 @@ class ProfessionalCard extends StatelessWidget {
 
                 const SizedBox(width: 12),
 
-                // 🧠 INFO
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -103,7 +102,6 @@ class ProfessionalCard extends StatelessWidget {
                   ),
                 ),
 
-                // 💬 BOTÃO CHAT
                 IconButton(
                   onPressed: onChat,
                   icon: const Icon(Icons.chat_bubble_outline),
