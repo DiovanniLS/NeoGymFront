@@ -34,7 +34,7 @@ class PlacesService {
 
     final List gyms = data["results"];
 
-    return gyms.map((e) => Gym.fromJson(e)).toList();
+    return gyms.map((e) => Gym.fromMap(e)).toList();
   }
 
   /// Buscar academia por nome
@@ -58,7 +58,7 @@ class PlacesService {
 
     final List gyms = data["results"];
 
-    return gyms.map((e) => Gym.fromJson(e)).toList();
+    return gyms.map((e) => Gym.fromMap(e)).toList();
   }
 
   static Future<List<LatLng>> getRouteCoordinates(

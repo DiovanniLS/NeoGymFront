@@ -1,5 +1,4 @@
 class Gym {
-
   final String name;
   final double lat;
   final double lng;
@@ -10,11 +9,11 @@ class Gym {
     required this.lng,
   });
 
-  factory Gym.fromJson(Map json) {
+  factory Gym.fromMap(Map<String, dynamic> map) {
     return Gym(
-      name: json["name"],
-      lat: json["geometry"]["location"]["lat"],
-      lng: json["geometry"]["location"]["lng"],
+      name: map["name"] ?? "",
+      lat: (map["lat"] ?? 0).toDouble(),
+      lng: (map["lng"] ?? 0).toDouble(),
     );
   }
 }

@@ -1,3 +1,5 @@
+import 'package:neogym/models/work_place.dart';
+
 class Professional {
   final String id;
   final String name;
@@ -8,6 +10,8 @@ class Professional {
   final bool isOnline;
   final String type;
 
+  final List<Workplace> workplaces;
+
   Professional({
     required this.id,
     required this.name,
@@ -17,6 +21,7 @@ class Professional {
     required this.distance,
     required this.isOnline,
     required this.type,
+    required this.workplaces,
   });
 
   factory Professional.fromMap(Map<String, dynamic> map) {
@@ -29,9 +34,12 @@ class Professional {
       distance: (map["distance"] ?? 0).toDouble(),
       isOnline: map["online"] ?? false,
       type: map["type"] ?? "Todos",
+
+      workplaces: (map["workplaces"] as List<dynamic>? ?? [])
+          .map((workplace) => Workplace.fromMap(workplace))
+          .toList(),
     );
   }
-
 }
 
 final List<Map<String, dynamic>> professionals = [
@@ -42,15 +50,25 @@ final List<Map<String, dynamic>> professionals = [
     "distance": 2.3,
     "image": "https://i.pravatar.cc/150?img=3",
     "online": true,
-    "type": "Personal"
-  },
-  {
-    "name": "Maria Souza",
-    "specialty": "Nutricionista",
-    "rating": 4.9,
-    "distance": 1.2,
-    "image": "https://i.pravatar.cc/150?img=5",
-    "online": false,
-    "type": "Nutri"
-  },
+    "type": "Personal",
+
+    "workplaces": [
+      {
+        "id": "1",
+        "name": "Smart Fit Paulista",
+        "type": "Academia",
+        "lat": -23.5,
+        "lng": -46.6,
+        "address": "Av. Paulista"
+      },
+      {
+        "id": "2",
+        "name": "BlueFit Diadema",
+        "type": "Academia",
+        "lat": -23.7,
+        "lng": -46.5,
+        "address": "Centro Diadema"
+      }
+    ]
+  }
 ];

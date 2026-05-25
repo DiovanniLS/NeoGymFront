@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:neogym/Resources/neo_gym_colors.dart';
+import 'package:neogym/Views/home_screens/select_work_places.dart';
 import 'package:neogym/Views/messages_screen.dart';
 import 'package:neogym/Views/configuracoes.dart';
 import 'package:neogym/Views/home_screens/activities_screen.dart';
@@ -9,7 +10,7 @@ import 'package:neogym/Views/home_screens/home.dart';
 import 'package:neogym/Views/profissionais.dart';
 import 'Views/home_screens/lista_de_exercícios.dart';
 import 'Views/map_screen.dart';
-import 'Views/splash_screen.dart';
+import 'Views/login_screen.dart';
 
 import 'package:flutter_localizations/flutter_localizations.dart';
 
@@ -37,7 +38,7 @@ class MyApp extends StatelessWidget {
 
       initialRoute: "/",
       routes: {
-        "/": (context) => SplashScreen(),
+        "/": (context) => LoginScreen(),
         "/home": (context) => HomeScreen(),
         "/gymMap": (context) => MapScreen(),
         "/config": (context) => Configuracoes(),
@@ -46,6 +47,7 @@ class MyApp extends StatelessWidget {
         "/workouts": (context) => WorkoutListScreen(),
         "/activities": (context) => ActivitiesScreen(),
         "/addAtiv": (context) => AddAtividade(),
+        "/selectWorkPlace": (context) => SelectWorkPlaces(),
       },
       theme: neoGymTheme,
       debugShowCheckedModeBanner: false,
