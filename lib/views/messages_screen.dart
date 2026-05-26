@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../Resources/neo_gym_colors.dart';
 import '../components/chat_card.dart';
 import '../models/professional.dart';
+import '../view_model/professional_viewmodel.dart';
 import 'chat_screen.dart';
 
 class MessagesScreen extends StatefulWidget {
@@ -12,17 +14,23 @@ class MessagesScreen extends StatefulWidget {
 }
 
 class _MessagesScreenState extends State<MessagesScreen> {
+  @override
+  void initState() {
+    super.initState();
+
+    Future.microtask(() {
+      context.read<ProfessionalViewModel>().loadProfessionals();
+    });
+  }
+
   final TextEditingController searchController = TextEditingController();
   String searchText = "";
 
-
-  final List<Professional> professionalsList =
-  professionals.map((e) => Professional.fromMap(e)).toList();
-
   @override
   Widget build(BuildContext context) {
-    final filteredList = professionalsList.where((p) {
+    final vm = context.watch<ProfessionalViewModel>();
 
+    final filteredList = vm.professionals.where((p) {
       final matchSearch = p.name!.toLowerCase().contains(
         searchText.toLowerCase(),
       );
@@ -30,18 +38,17 @@ class _MessagesScreenState extends State<MessagesScreen> {
       return matchSearch;
     }).toList();
 
-
     return Scaffold(
       body: SafeArea(
         child: Column(
           children: [
-
             buildSearchBar(),
 
             const SizedBox(height: 10),
 
             Expanded(
-              child: ListView.builder(
+              child:
+              ListView.builder(
                 padding: const EdgeInsets.all(10),
                 itemCount: filteredList.length,
                 itemBuilder: (context, index) {
@@ -59,7 +66,11 @@ class _MessagesScreenState extends State<MessagesScreen> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => ChatScreen(name: prof.name, Image: prof.image,),
+                            builder: (_) => ChatScreen(
+                              name: prof.name,
+                              Image: prof.image,
+                              chatId: 'chat_${prof.id}',
+                            ),
                           ),
                         );
                       },
@@ -103,6 +114,4 @@ class _MessagesScreenState extends State<MessagesScreen> {
       ),
     );
   }
-
-
 }

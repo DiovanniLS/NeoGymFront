@@ -5,8 +5,12 @@ import 'package:neogym/Views/configuracoes.dart';
 import 'package:neogym/Views/profissionais.dart';
 import 'package:neogym/components/app_bottom_nav.dart';
 import 'package:neogym/components/card_principal.dart';
+import 'package:provider/provider.dart';
+import '../../components/nav_item.dart';
 import '../../models/gym.dart';
+import '../../view_model/AuthViewModel.dart';
 import '../map_screen.dart';
+import '../professional_home_screens/professional_home_content.dart';
 
 enum AppTab { home, map, professionals, chat, settings }
 
@@ -32,11 +36,19 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  List<Widget> get pages => [
-    const HomeContent(),
+  List<Widget> getStudentPages() => [
+    const StudentHomeContent(),
     MapScreen(gym: selectedGym),
     const MessagesScreen(),
     const Profissionais(),
+    const Configuracoes(),
+  ];
+
+  List<Widget> getProfessionalPages() => [
+    const ProfessionalHomeContent(),
+    const MessagesScreen(),
+    const SelectWorkPlaces(),
+    const ProfessionalClientsScreen(),
     const Configuracoes(),
   ];
 
@@ -47,40 +59,106 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
 
+  final studentNavItems = const [
+
+    NavItem(
+      icon: "assets/icons/botao-home.png",
+      label: "Home",
+    ),
+
+    NavItem(
+      icon: "assets/icons/localizacao.png",
+      label: "Mapa",
+    ),
+
+    NavItem(
+      icon: "assets/icons/chat.png",
+      label: "Chat",
+    ),
+
+    NavItem(
+      icon: "assets/icons/profissionais.png",
+      label: "Profissionais",
+    ),
+
+    NavItem(
+      icon: "assets/icons/configuracoes.png",
+      label: "Config",
+    ),
+  ];
+
+  final professionalNavItems = const [
+
+    NavItem(
+      icon: "assets/icons/calendar.png",
+      label: "Agenda",
+    ),
+
+    NavItem(
+      icon: "assets/icons/chat.png",
+      label: "Chat",
+    ),
+
+    NavItem(
+      icon: "assets/icons/gym.png",
+      label: "Locais",
+    ),
+
+    NavItem(
+      icon: "assets/icons/clientes.png",
+      label: "Clientes",
+    ),
+
+    NavItem(
+      icon: "assets/icons/configuracoes.png",
+      label: "Perfil",
+    ),
+  ];
+
   @override
   Widget build(BuildContext context) {
+    final user = context.watch<AuthViewModel>().user;
+
+    final isProfessional =
+        user?.tipo == "PERSONAL" || user?.tipo == "NUTRICIONISTA";
+
     return Scaffold(
-      body: pages[currentIndex],
+      body: isProfessional
+          ? getProfessionalPages()[currentIndex]
+          : getStudentPages()[currentIndex],
 
       bottomNavigationBar: Padding(
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
         child: AppBottomNav(
           currentIndex: currentIndex,
           onTap: onTabTapped,
-        ),
+
+          items: isProfessional
+              ? professionalNavItems
+              : studentNavItems,
+        )
       ),
     );
   }
 }
 
-class HomeContent extends StatefulWidget {
-
-  const HomeContent({super.key});
+class StudentHomeContent extends StatefulWidget {
+  const StudentHomeContent({super.key});
 
   @override
-  State<HomeContent> createState() => _HomeContentState();
+  State<StudentHomeContent> createState() => _HomeContentState();
 }
 
-class _HomeContentState extends State<HomeContent> {
+class _HomeContentState extends State<StudentHomeContent> {
   double currentWater = 0;
 
   double goalWater = 2.5;
 
-  void addWater(double amount){
+  void addWater(double amount) {
     setState(() {
       currentWater += amount;
 
-      if(currentWater > goalWater){
+      if (currentWater > goalWater) {
         currentWater = goalWater;
       }
     });
@@ -88,49 +166,49 @@ class _HomeContentState extends State<HomeContent> {
 
   @override
   Widget build(BuildContext context) {
-    return  SafeArea(
-        child: SingleChildScrollView(
-          child: Container(
-            padding: EdgeInsets.all(20),
-            child: Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Olá, Diovanni',
-                          style: TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.w600,
-                          ),
+    return SafeArea(
+      child: SingleChildScrollView(
+        child: Container(
+          padding: EdgeInsets.all(20),
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Olá, Diovanni',
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w600,
                         ),
-                        Text(
-                          'vamos treinar hoje?',
-                          style: TextStyle(fontSize: 16),
-                        ),
-                      ],
-                    ),
-                    Container(
-                      height: 80,
-                      width: 80,
-                      decoration: BoxDecoration(),
-                      child: CircleAvatar(child: Icon(Icons.person)),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 30),
-                _buildHydrationCard(),
-                const SizedBox(height: 30),
-                _buildWorkoutCard(),
-                const SizedBox(height: 30),
-                _buildClassesCard(),
-              ],
-            ),
+                      ),
+                      Text(
+                        'vamos treinar hoje?',
+                        style: TextStyle(fontSize: 16),
+                      ),
+                    ],
+                  ),
+                  Container(
+                    height: 80,
+                    width: 80,
+                    decoration: BoxDecoration(),
+                    child: CircleAvatar(child: Icon(Icons.person)),
+                  ),
+                ],
+              ),
+              SizedBox(height: 30),
+              _buildHydrationCard(),
+              const SizedBox(height: 30),
+              _buildWorkoutCard(),
+              const SizedBox(height: 30),
+              _buildClassesCard(),
+            ],
           ),
         ),
+      ),
     );
   }
 
@@ -173,7 +251,6 @@ class _HomeContentState extends State<HomeContent> {
     );
   }
 
-
   Widget _buildWorkoutCard() {
     return CardPrincipal(
       leading: Image.asset('assets/icons/treino.png'),
@@ -206,10 +283,7 @@ class _HomeContentState extends State<HomeContent> {
               children: [
                 Text(
                   'Peito + Tríceps',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                  ),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
                 ),
                 Text('5 Exercícios', style: TextStyle(fontSize: 12)),
               ],
@@ -218,9 +292,9 @@ class _HomeContentState extends State<HomeContent> {
         ],
       ),
       button: ElevatedButton(
-          onPressed: () {
-            Navigator.pushNamed(context, '/workouts');
-          },
+        onPressed: () {
+          Navigator.pushNamed(context, '/workouts');
+        },
         child: const Text('Ver Ficha'),
       ),
     );
@@ -237,20 +311,14 @@ class _HomeContentState extends State<HomeContent> {
 
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const [
-              Text("Funcional"),
-              Text("18:00"),
-            ],
+            children: const [Text("Funcional"), Text("18:00")],
           ),
 
           const SizedBox(height: 6),
 
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const [
-              Text("Musculação"),
-              Text("20:00"),
-            ],
+            children: const [Text("Musculação"), Text("20:00")],
           ),
 
           const SizedBox(height: 10),

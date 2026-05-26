@@ -4,8 +4,10 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:neogym/Resources/neo_gym_colors.dart';
 import 'package:neogym/Views/escolher_perfil.dart';
 import 'package:neogym/services/auth_service.dart';
+import 'package:provider/provider.dart';
 
-import 'home_screens/home.dart';
+import '../models/user_model.dart';
+import '../view_model/AuthViewModel.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -47,21 +49,26 @@ class _LoginScreenState extends State<LoginScreen> {
         isLoading = true;
       });
 
-      final response = await authService.login(
-        email: emailValue.text.trim(),
-        senha: passValue.text.trim(),
+      final authService = AuthService();
+
+      final response =
+      await authService.login(
+        email: emailValue.text,
+        senha: passValue.text,
       );
 
-      print(response.nome);
-      print(response.tipo);
+      final user =
+      UserModel.fromLoginResponse(
+        response,
+      );
 
-      if (!mounted) return;
+      context
+          .read<AuthViewModel>()
+          .setUser(user);
 
-      Navigator.pushReplacement(
+      Navigator.pushReplacementNamed(
         context,
-        MaterialPageRoute(
-          builder: (_) => const HomeScreen(),
-        ),
+        '/home',
       );
     } on DioException catch (e) {
       String mensagemErro = 'Erro ao fazer login';

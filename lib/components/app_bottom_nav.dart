@@ -1,22 +1,20 @@
 import 'package:flutter/material.dart';
 
+import 'nav_item.dart';
+
 class AppBottomNav extends StatelessWidget {
+
   final int currentIndex;
   final Function(int) onTap;
+
+  final List<NavItem> items;
 
   const AppBottomNav({
     super.key,
     required this.currentIndex,
     required this.onTap,
+    required this.items,
   });
-
-  final List<String> icons = const [
-    "assets/icons/botao-home.png",
-    "assets/icons/localizacao.png",
-    "assets/icons/chat.png",
-    "assets/icons/profissionais.png",
-    "assets/icons/configuracoes.png",
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -38,7 +36,7 @@ class AppBottomNav extends StatelessWidget {
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final itemWidth = constraints.maxWidth / icons.length;
+          final itemWidth = constraints.maxWidth / items.length;
 
           return Stack(
             children: [
@@ -58,7 +56,7 @@ class AppBottomNav extends StatelessWidget {
               ),
 
               Row(
-                children: List.generate(icons.length, (index) {
+                children: List.generate(items.length, (index) {
                   final isSelected = currentIndex == index;
 
                   return Expanded(
@@ -69,7 +67,7 @@ class AppBottomNav extends StatelessWidget {
                           duration: const Duration(milliseconds: 200),
                           scale: isSelected ? 1.2 : 1.0,
                           child: Image.asset(
-                            icons[index],
+                            items[index].icon,
                             width: 24,
                             color: isSelected
                                 ? Colors.white

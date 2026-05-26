@@ -129,7 +129,11 @@ class ProfessionalDetailScreen extends StatelessWidget {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (_) => ChatScreen(name: prof.name, Image: prof.image,),
+                                  builder: (_) => ChatScreen(
+                                    name: prof.name,
+                                    Image: prof.image,
+                                    chatId: prof.id,
+                                  ),
                                 ),
                               );
                             },

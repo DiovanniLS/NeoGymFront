@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:neogym/Views/chat_screen.dart';
 import 'package:neogym/Views/perfil_profissonal.dart';
+import 'package:provider/provider.dart';
 
 import '../Resources/neo_gym_colors.dart';
 import '../components/card_profissional.dart';
-import '../models/professional.dart';
+import '../view_model/professional_viewmodel.dart';
 
 class Profissionais extends StatefulWidget {
   const Profissionais({super.key});
@@ -19,12 +20,10 @@ class _ProfissionaisState extends State<Profissionais> {
   String selectedFilter = "Todos";
   String searchText = "";
 
-  final List<Professional> professionalsList = professionals
-      .map((e) => Professional.fromMap(e))
-      .toList();
-
   @override
   Widget build(BuildContext context) {
+    final professionalsList = context.watch<ProfessionalViewModel>().professionals;
+
     final filteredList = professionalsList.where((p) {
       final matchFilter = selectedFilter == "Todos" || p.type == selectedFilter;
 
@@ -56,12 +55,12 @@ class _ProfissionaisState extends State<Profissionais> {
                     final prof = filteredList[index];
 
                     return ProfessionalCard(
-                      name: prof.name ?? "",
+                      name: prof.name,
                       specialty: prof.specialty,
-                      rating: prof.rating ?? 0,
+                      rating: prof.rating,
                       distance: prof.distance,
-                      imageUrl: prof.image ?? "",
-                      isOnline: prof.isOnline ?? false,
+                      imageUrl: prof.image,
+                      isOnline: prof.isOnline,
 
                       onTap: () {
                         Navigator.push(
@@ -77,7 +76,11 @@ class _ProfissionaisState extends State<Profissionais> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => ChatScreen(name: prof.name, Image: prof.image,),
+                            builder: (_) => ChatScreen(
+                              name: prof.name,
+                              Image: prof.image,
+                              chatId: prof.id,
+                            ),
                           ),
                         );
                       },

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "740515266258",
+    "project_id": "neogym2026",
+    "storage_bucket": "neogym2026.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:740515266258:android:3fc1573430bd5bd01ef70b",
+        "android_client_info": {
+          "package_name": "com.neogym.fatec.neogym"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCQm9YlPnL840i0V2noZXPRbySAI5G_o8I"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
