@@ -16,7 +16,7 @@ O **NeoGym** é um aplicativo que permite ao usuário:
 * Visualizar academias diretamente no **mapa**
 * Buscar academias pelo nome
 * Visualizar informações básicas de estabelecimentos
-* Futuramente contratar **personal trainers e nutricionistas**
+*Localizar profissionais no mapa, mandar mensagens, agendar consultas e atendimentos privados
 
 O aplicativo foi desenvolvido como parte de um projeto acadêmico na **FATEC Diadema**, no curso de **Desenvolvimento de Software Multiplataforma**.
 
@@ -30,8 +30,9 @@ Ao aproximar usuários de serviços que promovem hábitos saudáveis, o NeoGym b
 
 Além disso, o projeto também pode impactar indiretamente outros objetivos, como:
 
+* **ODS 3 – Saúde e Bem-estar **, Promover a vida saudável e o bem-estar para todos os usuários da plataforma em todas as idades.
 * **ODS 8 – Trabalho Decente e Crescimento Econômico**, ao dar visibilidade a profissionais autônomos da área fitness.
-* **ODS 11 – Cidades e Comunidades Sustentáveis**, ao ajudar usuários a encontrar serviços de saúde e bem-estar próximos à sua localização.
+* **ODS 9 – Inovação e Infraestrutura**, Construir infraestruturas resilientes e promover a inovação tecnológica no ecossistema fitness.
 
 ---
 
@@ -41,8 +42,11 @@ Além disso, o projeto também pode impactar indiretamente outros objetivos, com
 * **Dart**
 * **Google Maps SDK**
 * **Google Places API**
-* **HTTP package**
+* **DIO API Connection**
 * **Flutter Dotenv**
+* **FirebaseFirestore**
+* **SecureStorage**
+* **Provider**
 
 ---
 
@@ -54,6 +58,8 @@ Além disso, o projeto também pode impactar indiretamente outros objetivos, com
 * Cálculo de distância entre usuário e academia
 * Navegação entre telas
 * Interface construída com **Material Design**
+* Criação de fichas de treino personalizadas
+* Criação de eventos agendados
 
 ---
 
@@ -67,9 +73,11 @@ lib/
  │
  ├── services/
  │
- ├── screens/
- │
  ├── utils/
+ │
+ ├── view_model/
+ │
+ ├── views/
  │
  └── main.dart
 ```
@@ -86,12 +94,8 @@ lib/
 
 ## 🚧 Funcionalidades futuras
 
-* Cadastro e login de usuários funcional
-* Cadastro de profissionais (personal trainers e nutricionistas)
 * Sistema de agendamento
 * Avaliações de academias e profissionais
-* Integração com backend
-* Chat com profissionais
 ---
 
 ## 👨‍💻 Desenvolvido por
