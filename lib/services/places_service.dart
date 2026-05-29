@@ -15,7 +15,6 @@ class PlacesService {
       double lng,
       ) async {
 
-    print("API KEY: $apiKey");
     final url = Uri.parse(
         "https://maps.googleapis.com/maps/api/place/nearbysearch/json"
             "?location=$lat,$lng"
@@ -26,9 +25,6 @@ class PlacesService {
     );
 
     final response = await http.get(url);
-
-    print("STATUS HTTP: ${response.statusCode}");
-    print("BODY: ${response.body}");
 
     final data = jsonDecode(response.body);
 

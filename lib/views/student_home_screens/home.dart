@@ -5,11 +5,13 @@ import 'package:neogym/Views/configuracoes.dart';
 import 'package:neogym/Views/profissionais.dart';
 import 'package:neogym/components/app_bottom_nav.dart';
 import 'package:neogym/components/card_principal.dart';
+import 'package:neogym/views/student_home_screens/select_work_places.dart';
 import 'package:provider/provider.dart';
 import '../../components/nav_item.dart';
 import '../../models/gym.dart';
 import '../../view_model/AuthViewModel.dart';
 import '../map_screen.dart';
+import '../professional_clients_screen.dart';
 import '../professional_home_screens/professional_home_content.dart';
 
 enum AppTab { home, map, professionals, chat, settings }
@@ -90,8 +92,13 @@ class _HomeScreenState extends State<HomeScreen> {
   final professionalNavItems = const [
 
     NavItem(
-      icon: "assets/icons/calendar.png",
-      label: "Agenda",
+      icon: "assets/icons/botao-home.png",
+      label: "Home",
+    ),
+
+    NavItem(
+      icon: "assets/icons/localizacao.png",
+      label: "Mapa",
     ),
 
     NavItem(
@@ -100,18 +107,13 @@ class _HomeScreenState extends State<HomeScreen> {
     ),
 
     NavItem(
-      icon: "assets/icons/gym.png",
-      label: "Locais",
-    ),
-
-    NavItem(
-      icon: "assets/icons/clientes.png",
-      label: "Clientes",
+      icon: "assets/icons/profissionais.png",
+      label: "Profissionais",
     ),
 
     NavItem(
       icon: "assets/icons/configuracoes.png",
-      label: "Perfil",
+      label: "Config",
     ),
   ];
 

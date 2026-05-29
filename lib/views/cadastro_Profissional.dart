@@ -17,42 +17,21 @@ class CadastroProfissional extends StatefulWidget {
   State<CadastroProfissional> createState() => _CadastroProfissionalState();
 }
 
-class _CadastroProfissionalState
-    extends State<CadastroProfissional> {
+class _CadastroProfissionalState extends State<CadastroProfissional> {
 
   bool rememberPass = false;
 
-  final TextEditingController nameValue =
-  TextEditingController();
-
-  final TextEditingController emailValue =
-  TextEditingController();
-
-  final TextEditingController phoneValue =
-  TextEditingController();
-
-  final TextEditingController passValue =
-  TextEditingController();
-
-  final TextEditingController rememberValue =
-  TextEditingController();
-
-  final TextEditingController registerValue =
-  TextEditingController();
-
-  final TextEditingController stateRegisterValue =
-  TextEditingController();
+  final TextEditingController nameValue = TextEditingController();
+  final TextEditingController emailValue = TextEditingController();
+  final TextEditingController passValue = TextEditingController();
+  final TextEditingController rememberValue = TextEditingController();
+  final TextEditingController registerValue = TextEditingController();
+  final TextEditingController stateRegisterValue = TextEditingController();
 
   bool isPasswordVisible = false;
-
   bool isLoading = false;
 
   int currentStep = 1;
-
-  File? identityDocument;
-  File? professionalDocument;
-
-  final ImagePicker picker = ImagePicker();
 
   final AuthService authService = AuthService();
 
@@ -60,7 +39,6 @@ class _CadastroProfissionalState
   void dispose() {
     nameValue.dispose();
     emailValue.dispose();
-    phoneValue.dispose();
     passValue.dispose();
     rememberValue.dispose();
     registerValue.dispose();
@@ -68,121 +46,13 @@ class _CadastroProfissionalState
     super.dispose();
   }
 
-  Future<void> pickDocument(
-      bool isIdentity,
-      ImageSource source,
-      ) async {
-
-    final XFile? image =
-    await picker.pickImage(
-      source: source,
-      imageQuality: 70,
-    );
-
-    if (image == null) return;
-
-    final file = File(image.path);
-
-    final fileSize =
-    await file.length();
-
-    final fileSizeMb =
-        fileSize / (1024 * 1024);
-
-    if (fileSizeMb > 5) {
-
-      mostrarMensagem(
-        'Imagem muito grande',
-      );
-
-      return;
-    }
-
-    setState(() {
-
-      if (isIdentity) {
-
-        identityDocument = file;
-
-      } else {
-
-        professionalDocument = file;
-
-      }
-
-    });
-  }
-
-  Future<void> finalizarCadastro() async {
-
-    if (identityDocument == null ||
-        professionalDocument == null) {
-
-      mostrarMensagem(
-        'Envie os documentos',
-      );
-
-      return;
-    }
-
-    try {
-
-      setState(() {
-        isLoading = true;
-      });
-
-      await authService.cadastrarProfissional(
-        isNutri: widget.proType == 'Nutri',
-
-        nome: nameValue.text.trim(),
-        email: emailValue.text.trim(),
-        senha: passValue.text.trim(),
-
-        registro: registerValue.text.trim(),
-
-        estadoRegistro:
-        stateRegisterValue.text.trim(),
-
-        identidade: identityDocument!,
-
-        documentoProfissional:
-        professionalDocument!,
-      );
-
-      if (!mounted) return;
-
-      Navigator.pushNamed(
-        context,
-        "/selectWorkPlace",
-      );
-
-    } catch (e) {
-
-      mostrarMensagem(
-        'Erro ao cadastrar',
-      );
-
-    } finally {
-
-      if (mounted) {
-
-        setState(() {
-          isLoading = false;
-        });
-
-      }
-    }
-  }
-
   bool validarStepOne() {
-
     if (nameValue.text.isEmpty ||
         emailValue.text.isEmpty ||
         passValue.text.isEmpty ||
         rememberValue.text.isEmpty ||
         registerValue.text.isEmpty ||
         stateRegisterValue.text.isEmpty) {
-
       mostrarMensagem('Preencha todos os campos');
       return false;
     }
@@ -196,131 +66,74 @@ class _CadastroProfissionalState
   }
 
   void mostrarMensagem(String mensagem) {
-
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(mensagem),
-      ),
+      SnackBar(content: Text(mensagem)),
     );
   }
 
-  void showImageSourceSelector(
-      bool isIdentity,
-      ) {
+  Future<void> finalizarCadastro() async {
+    try {
+      setState(() => isLoading = true);
 
-    showModalBottomSheet(
-      context: context,
+      await authService.cadastrarProfissional(
+        isNutri: widget.proType == 'Nutri',
+        nome: nameValue.text.trim(),
+        email: emailValue.text.trim(),
+        senha: passValue.text.trim(),
+        registro: registerValue.text.trim(),
+        estadoRegistro: stateRegisterValue.text.trim(),
+      );
 
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(20),
-        ),
-      ),
+      if (!mounted) return;
 
-      builder: (_) {
-
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-
-              children: [
-
-                const Text(
-                  'Selecionar documento',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-
-                const SizedBox(height: 20),
-
-                ListTile(
-                  leading: const Icon(
-                    Icons.camera_alt,
-                    color: NeoGymColors.primary,
-                  ),
-
-                  title: const Text(
-                    'Tirar foto',
-                  ),
-
-                  onTap: () {
-
-                    Navigator.pop(context);
-
-                    pickDocument(
-                      isIdentity,
-                      ImageSource.camera,
-                    );
-                  },
-                ),
-
-                ListTile(
-                  leading: const Icon(
-                    Icons.photo_library,
-                    color: NeoGymColors.primary,
-                  ),
-
-                  title: const Text(
-                    'Escolher da galeria',
-                  ),
-
-                  onTap: () {
-
-                    Navigator.pop(context);
-
-                    pickDocument(
-                      isIdentity,
-                      ImageSource.gallery,
-                    );
-                  },
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
+      Navigator.pushNamed(context, "/selectWorkPlace");
+    } catch (e) {
+      mostrarMensagem('Erro ao cadastrar');
+    } finally {
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
+    }
   }
-
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[200],
       appBar: AppBar(
-        actions: [IconButton(onPressed: () {}, icon: Icon(Icons.menu))],
+        actions: [
+          IconButton(onPressed: () {}, icon: const Icon(Icons.menu))
+        ],
         title: Text(
           widget.proType == 'Nutri'
               ? 'Cadastro Nutricionista'
               : "Cadastro Personal Trainer",
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
       ),
+
       body: SingleChildScrollView(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 24),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+
           child: Card(
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),
             elevation: 4,
+
             child: Padding(
               padding: const EdgeInsets.all(16),
+
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+
                 children: [
+
                   if (currentStep > 1)
                     IconButton(
-                      icon: const Icon(
-                        Icons.arrow_back,
-                        color: NeoGymColors.primary,
-                      ),
+                      icon: const Icon(Icons.arrow_back),
                       onPressed: () {
                         setState(() {
                           currentStep--;
@@ -328,7 +141,7 @@ class _CadastroProfissionalState
                       },
                     ),
 
-                  SizedBox(height: 16),
+                  const SizedBox(height: 16),
 
                   CadastroStepper(step: currentStep),
 
@@ -337,9 +150,13 @@ class _CadastroProfissionalState
                   AnimatedSwitcher(
                     duration: const Duration(milliseconds: 350),
                     transitionBuilder: (child, animation) {
-                      return FadeTransition(opacity: animation, child: child);
+                      return FadeTransition(
+                        opacity: animation,
+                        child: child,
+                      );
                     },
-                    child: currentStep == 1 ? stepOne() : stepTwo(),
+
+                    child: stepOne(),
                   ),
                 ],
               ),
@@ -372,18 +189,6 @@ class _CadastroProfissionalState
         const SizedBox(height: 16),
 
         InputField(
-          controller: phoneValue,
-          hint: "(00) 00000-0000",
-          icon: Icons.phone,
-          keyboardType: TextInputType.phone,
-          formatters: [
-            PhoneInputFormatter()
-          ],
-        ),
-
-        const SizedBox(height: 16),
-
-        InputField(
           controller: registerValue,
           hint: widget.proType == 'Nutri'
               ? "Digite seu CRN"
@@ -398,6 +203,7 @@ class _CadastroProfissionalState
           hint: "UF do registro (SP)",
           icon: Icons.map,
         ),
+
         const SizedBox(height: 16),
 
         InputField(
@@ -410,7 +216,6 @@ class _CadastroProfissionalState
               isPasswordVisible
                   ? Icons.visibility
                   : Icons.visibility_off,
-              color: NeoGymColors.primary,
             ),
             onPressed: () {
               setState(() {
@@ -432,7 +237,6 @@ class _CadastroProfissionalState
               isPasswordVisible
                   ? Icons.visibility
                   : Icons.visibility_off,
-              color: NeoGymColors.primary,
             ),
             onPressed: () {
               setState(() {
@@ -442,26 +246,15 @@ class _CadastroProfissionalState
           ),
         ),
 
-
         CheckboxListTile(
           contentPadding: EdgeInsets.zero,
-          title: const Text(
-            'Lembrar senha',
-            style: TextStyle(fontSize: 16),
-          ),
+          title: const Text('Lembrar senha'),
           value: rememberPass,
-          onChanged: (bool? value) {
+          onChanged: (value) {
             setState(() {
               rememberPass = value ?? false;
             });
           },
-          activeColor: NeoGymColors.primary,
-          checkColor: Colors.white,
-          side: const BorderSide(
-            color: NeoGymColors.primary,
-            width: 2,
-          ),
-          controlAffinity: ListTileControlAffinity.leading,
         ),
 
         const SizedBox(height: 24),
@@ -470,159 +263,198 @@ class _CadastroProfissionalState
           width: double.infinity,
           height: 50,
           child: ElevatedButton(
-            onPressed: () {
-
+            onPressed: isLoading
+                ? null
+                : () async {
               if (!validarStepOne()) return;
 
-              setState(() {
-                currentStep = 2;
-              });
+              await finalizarCadastro();
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: NeoGymColors.primary,
             ),
-            child: const Text("Próxima etapa"),
-          ),
-        ),
-
-      ],
-    );
-  }
-
-  Widget stepTwo() {
-    return Column(
-      key: const ValueKey(2),
-      children: [
-        const Text(
-          "Envie seus documentos para validação",
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-
-        const SizedBox(height: 30),
-
-        uploadCard(
-          icon: Icons.badge,
-          title: "RG ou CNH",
-          subtitle: "Foto do documento de identidade",
-          file: identityDocument,
-          onTap: () =>
-              showImageSourceSelector(true),
-        ),
-
-        const SizedBox(height: 20),
-
-        uploadCard(
-          icon: Icons.assignment_ind,
-          title: widget.proType == 'Nutri'
-              ? "Registro CRN"
-              : "Registro CREF",
-
-          subtitle: widget.proType == 'Nutri'
-              ? "Documento profissional do nutricionista"
-              : "Documento profissional do personal trainer",
-
-          file: professionalDocument,
-          onTap: () =>
-              showImageSourceSelector(false),
-        ),
-
-        const SizedBox(height: 30),
-
-        SizedBox(
-          width: double.infinity,
-          height: 50,
-          child: ElevatedButton(
-            onPressed: isLoading
-                ? null
-                : finalizarCadastro,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: NeoGymColors.primary,
-            ),
-            child: const Text("Finalizar cadastro"),
+            child: isLoading
+                ? const CircularProgressIndicator(
+              color: Colors.white,
+              strokeWidth: 2,
+            )
+                : const Text("Finalizar cadastro"),
           ),
         ),
       ],
     );
   }
 
+// ======================================================
+// 📁 DOCUMENTOS (DESATIVADO TEMPORARIAMENTE)
+// ======================================================
 
-  Widget uploadCard({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required File? file,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
+// File? identityDocument;
+// File? professionalDocument;
 
-      child: Card(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        elevation: 4,
+// final ImagePicker picker = ImagePicker();
 
-        child: Container(
-          padding: const EdgeInsets.all(16),
+/// 📸 Seleção de documentos (CÂMERA / GALERIA)
+/*
+Future<void> pickDocument(
+  bool isIdentity,
+  ImageSource source,
+) async {
 
-          child: Row(
-            children: [
+  final XFile? image = await picker.pickImage(
+    source: source,
+    imageQuality: 70,
+  );
 
-              Icon(
-                icon,
-                color: NeoGymColors.primary,
-                size: 32,
-              ),
+  if (image == null) return;
 
-              const SizedBox(width: 16),
+  final file = File(image.path);
 
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+  final fileSize = await file.length();
+  final fileSizeMb = fileSize / (1024 * 1024);
 
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+  if (fileSizeMb > 5) {
+    mostrarMensagem('Imagem muito grande');
+    return;
+  }
 
-                    const SizedBox(height: 4),
+  setState(() {
+    if (isIdentity) {
+      identityDocument = file;
+    } else {
+      professionalDocument = file;
+    }
+  });
+}
+*/
 
-                    Text(
-                      file != null
-                          ? "Documento enviado ✅"
-                          : subtitle,
+/// 🚀 FINALIZAR CADASTRO (UPLOAD DOCUMENTOS)
+/*
+Future<void> finalizarCadastro() async {
 
-                      style: TextStyle(
-                        color: file != null
-                            ? Colors.green
-                            : Colors.grey[600],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+  if (identityDocument == null ||
+      professionalDocument == null) {
 
-              file != null
-                  ? ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Image.file(
-                  file,
-                  width: 50,
-                  height: 50,
-                  fit: BoxFit.cover,
-                ),
-              )
-                  : const Icon(Icons.upload_file),
-            ],
-          ),
+    mostrarMensagem('Envie os documentos');
+    return;
+  }
+
+  try {
+    setState(() {
+      isLoading = true;
+    });
+
+    await authService.cadastrarProfissional(
+      isNutri: widget.proType == 'Nutri',
+
+      nome: nameValue.text.trim(),
+      email: emailValue.text.trim(),
+      senha: passValue.text.trim(),
+
+      registro: registerValue.text.trim(),
+      estadoRegistro: stateRegisterValue.text.trim(),
+
+      identidade: identityDocument!,
+      documentoProfissional: professionalDocument!,
+    );
+
+    if (!mounted) return;
+
+    Navigator.pushNamed(context, "/selectWorkPlace");
+
+  } catch (e) {
+    mostrarMensagem('Erro ao cadastrar');
+  } finally {
+    if (mounted) {
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+}
+*/
+
+/// 📌 STEP 2 (TELA DE UPLOAD)
+/*
+Widget stepTwo() {
+  return Column(
+    children: [
+
+      const Text("Envie seus documentos para validação"),
+
+      uploadCard(
+        icon: Icons.badge,
+        title: "RG ou CNH",
+        subtitle: "Foto do documento de identidade",
+        file: identityDocument,
+        onTap: () => showImageSourceSelector(true),
+      ),
+
+      uploadCard(
+        icon: Icons.assignment_ind,
+        title: widget.proType == 'Nutri'
+            ? "Registro CRN"
+            : "Registro CREF",
+        subtitle: widget.proType == 'Nutri'
+            ? "Documento profissional do nutricionista"
+            : "Documento profissional do personal trainer",
+        file: professionalDocument,
+        onTap: () => showImageSourceSelector(false),
+      ),
+
+      SizedBox(
+        width: double.infinity,
+        height: 50,
+        child: ElevatedButton(
+          onPressed: isLoading ? null : finalizarCadastro,
+          child: const Text("Finalizar cadastro"),
         ),
       ),
-    );
-  }
+    ],
+  );
+}
+*/
 
+/// 🧱 CARD DE UPLOAD
+/*
+Widget uploadCard({
+  required IconData icon,
+  required String title,
+  required String subtitle,
+  required File? file,
+  required VoidCallback onTap,
+}) {
+  return InkWell(
+    onTap: onTap,
+    child: Card(
+      child: Row(
+        children: [
 
+          Icon(icon),
+
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+
+                Text(title),
+
+                Text(
+                  file != null
+                      ? "Documento enviado ✅"
+                      : subtitle,
+                ),
+              ],
+            ),
+          ),
+
+          file != null
+              ? Image.file(file, width: 50, height: 50)
+              : const Icon(Icons.upload_file),
+        ],
+      ),
+    ),
+  );
+}
+*/
 }

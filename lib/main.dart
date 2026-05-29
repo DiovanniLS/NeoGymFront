@@ -3,17 +3,18 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:neogym/Resources/neo_gym_colors.dart';
-import 'package:neogym/Views/home_screens/select_work_places.dart';
 import 'package:neogym/Views/messages_screen.dart';
 import 'package:neogym/Views/configuracoes.dart';
-import 'package:neogym/Views/home_screens/activities_screen.dart';
-import 'package:neogym/Views/home_screens/add_atividade.dart';
-import 'package:neogym/Views/home_screens/home.dart';
 import 'package:neogym/Views/profissionais.dart';
 import 'package:neogym/view_model/AuthViewModel.dart';
 import 'package:neogym/view_model/chat_viewmodel.dart';
 import 'package:neogym/view_model/professional_viewmodel.dart';
-import 'Views/home_screens/lista_de_exercícios.dart';
+import 'package:neogym/views/professional_home_screens/professional_home_content.dart';
+import 'package:neogym/views/student_home_screens/activities_screen.dart';
+import 'package:neogym/views/student_home_screens/add_atividade.dart';
+import 'package:neogym/views/student_home_screens/home.dart';
+import 'package:neogym/views/student_home_screens/lista_de_exerc%C3%ADcios.dart';
+import 'package:neogym/views/student_home_screens/select_work_places.dart';
 import 'Views/map_screen.dart';
 import 'Views/login_screen.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -26,7 +27,7 @@ Future<void> main() async {
   await dotenv.load(fileName: ".env");
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  await FirebaseAuth.instance.signInAnonymously();
+  await initAuth();
 
   runApp(
     MultiProvider(
@@ -39,6 +40,16 @@ Future<void> main() async {
       child: const MyApp(),
     ),
   );
+}
+
+Future<void> initAuth() async {
+  final auth = FirebaseAuth.instance;
+
+  if (auth.currentUser == null) {
+    await auth.signInAnonymously();
+  }
+
+  print("AUTH READY: ${auth.currentUser?.uid}");
 }
 
 class MyApp extends StatelessWidget {
@@ -60,6 +71,7 @@ class MyApp extends StatelessWidget {
       routes: {
         "/": (context) => LoginScreen(),
         "/home": (context) => HomeScreen(),
+        "/homePro": (context) => ProfessionalHomeContent(),
         "/gymMap": (context) => MapScreen(),
         "/config": (context) => Configuracoes(),
         "/profissionais": (context) => Profissionais(),

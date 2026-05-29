@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:neogym/Resources/neo_gym_colors.dart';
-import 'package:neogym/Views/home_screens/home.dart';
-import 'package:neogym/Views/home_screens/lista_de_exerc%C3%ADcios.dart';
 import 'package:neogym/Views/map_screen.dart';
+import 'package:neogym/views/student_home_screens/home.dart';
+import 'package:neogym/views/student_home_screens/lista_de_exerc%C3%ADcios.dart';
 
 class Configuracoes extends StatelessWidget {
   const Configuracoes({super.key});

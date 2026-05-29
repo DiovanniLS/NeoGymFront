@@ -21,7 +21,7 @@ class MessageModel {
 
   factory MessageModel.fromMap(Map<String, dynamic> map) {
     return MessageModel(
-      text: map['message'] ?? '',
+      text: map['text'] ?? '',
 
       senderId: map['senderId'] ?? '',
 

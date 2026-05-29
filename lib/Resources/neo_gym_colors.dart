@@ -29,7 +29,7 @@ class NeoGymColors {
 
 ThemeData neoGymTheme = ThemeData(
   primaryColor: NeoGymColors.primary,
-
+  scaffoldBackgroundColor: NeoGymColors.background,
   colorScheme: ColorScheme(
     brightness: Brightness.light,
     primary: NeoGymColors.primary,
@@ -44,7 +44,6 @@ ThemeData neoGymTheme = ThemeData(
     onBackground: NeoGymColors.textPrimary,
   ),
 
-  scaffoldBackgroundColor: NeoGymColors.background,
 
   appBarTheme: const AppBarTheme(
     backgroundColor: NeoGymColors.primary,

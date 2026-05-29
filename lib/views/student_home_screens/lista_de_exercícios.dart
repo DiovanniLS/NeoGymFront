@@ -1,10 +1,10 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
-import 'package:neogym/Views/home_screens/tela_detalhes_exercicios.dart';
 import 'package:neogym/components/swipeable_card.dart';
 import 'package:neogym/components/universal_app_bar.dart';
 import 'package:neogym/models/workout.dart';
+import 'package:neogym/views/student_home_screens/tela_detalhes_exercicios.dart';
 
 import 'criar_ficha_treino.dart';
 

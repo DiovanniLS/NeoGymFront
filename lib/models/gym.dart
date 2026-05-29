@@ -10,10 +10,12 @@ class Gym {
   });
 
   factory Gym.fromMap(Map<String, dynamic> map) {
+    final location = map["geometry"]?["location"];
+
     return Gym(
       name: map["name"] ?? "",
-      lat: (map["lat"] ?? 0).toDouble(),
-      lng: (map["lng"] ?? 0).toDouble(),
+      lat: (location?["lat"] ?? 0).toDouble(),
+      lng: (location?["lng"] ?? 0).toDouble(),
     );
   }
 }

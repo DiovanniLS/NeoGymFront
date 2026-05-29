@@ -4,6 +4,10 @@ class LoginResponse {
   final String nome;
   final String email;
   final String tipo;
+  final int usuarioId;
+  final String tokenType;
+  final int accessTokenExpiresIn;
+  final int refreshTokenExpiresIn;
 
   LoginResponse({
     required this.accessToken,
@@ -11,17 +15,23 @@ class LoginResponse {
     required this.nome,
     required this.email,
     required this.tipo,
+    required this.usuarioId,
+    required this.tokenType,
+    required this.accessTokenExpiresIn,
+    required this.refreshTokenExpiresIn,
   });
 
-  factory LoginResponse.fromJson(
-      Map<String, dynamic> json,
-      ) {
+  factory LoginResponse.fromJson(Map<String, dynamic> json) {
     return LoginResponse(
-      accessToken: json['accessToken'],
-      refreshToken: json['refreshToken'],
-      nome: json['nome'],
-      email: json['email'],
-      tipo: json['tipo'],
+      accessToken: json['accessToken'] ?? '',
+      refreshToken: json['refreshToken'] ?? '',
+      nome: json['nome'] ?? '',
+      email: json['email'] ?? '',
+      tipo: json['tipo'] ?? '',
+      usuarioId: json['usuarioId'] ?? 0,
+      tokenType: json['tokenType'] ?? '',
+      accessTokenExpiresIn: json['accessTokenExpiresIn'] ?? 0,
+      refreshTokenExpiresIn: json['refreshTokenExpiresIn'] ?? 0,
     );
   }
 }

@@ -28,19 +28,27 @@ class ChatService {
     required String senderName,
     required String senderEmail,
   }) async {
-    final user = auth.currentUser;
+    try {
+      final user = auth.currentUser;
 
-    if (user == null) return;
 
-    await firestore.collection('chats').doc(chatId).collection('messages').add({
-      'message': message,
+      if (user == null) return;
 
-      'senderId': user.uid,
+      await firestore
+          .collection('chats')
+          .doc(chatId)
+          .collection('messages')
+          .add({
+        'text': message,
+        'senderId': user.uid,
+        'senderName': senderName,
+        'senderEmail': senderEmail,
+        'timestamp': FieldValue.serverTimestamp(),
+      });
 
-      'senderName': senderName,
-      'senderEmail': senderEmail,
-
-      'timestamp': FieldValue.serverTimestamp(),
-    });
+      print("MESSAGE SENT ✔");
+    } catch (e) {
+      print("SEND ERROR: $e");
+    }
   }
 }

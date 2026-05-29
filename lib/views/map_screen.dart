@@ -7,8 +7,14 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import '../Resources/neo_gym_colors.dart';
 import '../models/gym.dart';
+import '../models/professional.dart';
 import '../services/location_service.dart';
 import '../services/places_service.dart';
+
+enum MapMode {
+  gyms,
+  professionals,
+}
 
 class MapScreen extends StatefulWidget {
   final Gym? gym;
@@ -21,6 +27,7 @@ class MapScreen extends StatefulWidget {
 
 class _MapScreenState extends State<MapScreen> {
   GoogleMapController? mapController;
+  MapMode currentMode = MapMode.gyms;
 
   LatLng? userLocation;
   LatLng? gymLocation;
@@ -28,6 +35,7 @@ class _MapScreenState extends State<MapScreen> {
 
   Set<Marker> markers = {};
   Set<Polyline> polylines = {};
+  Set<Circle> circles = {};
 
   String? distance;
   String? duration;
@@ -126,6 +134,81 @@ class _MapScreenState extends State<MapScreen> {
     });
   }
 
+  Future<void> loadGymMode() async {
+    polylines = {};
+
+    final pos = await LocationService.getUserLocation();
+
+    final gyms = await PlacesService.searchGyms(
+      pos.latitude,
+      pos.longitude,
+    );
+
+    Set<Marker> gymMarkers = {};
+
+    for (var gym in gyms) {
+      gymMarkers.add(
+        Marker(
+          markerId: MarkerId(gym.name),
+          position: LatLng(gym.lat, gym.lng),
+          icon: gymIcon ?? BitmapDescriptor.defaultMarker,
+          onTap: () async {
+            setState(() {
+              selectedGym = gym;
+              gymLocation = LatLng(gym.lat, gym.lng);
+            });
+
+            await loadRoute();
+            _fitCamera();
+          },
+        ),
+      );
+    }
+
+    setState(() {
+      markers = gymMarkers;
+      circles = {};
+    });
+  }
+
+  Future<void> loadProfessionalMode() async {
+    polylines = {};
+
+    Set<Marker> profMarkers = {};
+    Set<Circle> profCircles = {};
+
+    for (final prof in professionals) {
+      final position = LatLng(prof["lat"], prof["lng"]);
+
+      profMarkers.add(
+        Marker(
+          markerId: MarkerId(prof["id"]),
+          position: position,
+          onTap: () {
+            // depois você liga no perfil real
+          },
+        ),
+      );
+
+      profCircles.add(
+        Circle(
+          circleId: CircleId(prof["id"]),
+          center: position,
+          radius: (prof["radiusKm"] ?? 2) * 1000,
+          fillColor: Colors.blue.withOpacity(0.15),
+          strokeColor: Colors.blue,
+          strokeWidth: 2,
+        ),
+      );
+    }
+
+    setState(() {
+      markers = profMarkers;
+      circles = profCircles;
+    });
+  }
+
+
   @override
   Widget build(BuildContext context) {
     if (userLocation == null) {
@@ -212,6 +295,7 @@ class _MapScreenState extends State<MapScreen> {
             ),
             markers: markers,
             polylines: polylines,
+            circles: circles,
             myLocationEnabled: true,
             onMapCreated: (controller) async {
               mapController = controller;
@@ -224,6 +308,61 @@ class _MapScreenState extends State<MapScreen> {
           ),
           buildSearchBar(),
           buildBottomCard(),
+          Positioned(
+            top: 50,
+            left: 16,
+            right: 16,
+
+            child: Row(
+
+              children: [
+
+                Expanded(
+                  child: ChoiceChip(
+
+                    label: const Text(
+                      "Academias",
+                    ),
+
+                    selected:
+                    currentMode ==
+                        MapMode.gyms,
+
+                    onSelected: (_) {
+                      setState(() {
+                        currentMode = MapMode.gyms;
+                      });
+
+                      loadGymMode();
+                    },
+                  ),
+                ),
+
+                const SizedBox(width: 10),
+
+                Expanded(
+                  child: ChoiceChip(
+
+                    label: const Text(
+                      "Profissionais",
+                    ),
+
+                    selected:
+                    currentMode ==
+                        MapMode.professionals,
+
+                    onSelected: (_) {
+                      setState(() {
+                        currentMode = MapMode.professionals;
+                      });
+
+                      loadProfessionalMode();
+                    },
+                  ),
+                ),
+              ],
+            ),
+          )
         ],
       ),
     );

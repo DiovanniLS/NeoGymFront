@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:neogym/Resources/neo_gym_colors.dart';
@@ -17,17 +18,28 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final TextEditingController emailValue =
-  TextEditingController();
-
-  final TextEditingController passValue =
-  TextEditingController();
+  final TextEditingController emailValue = TextEditingController();
+  final TextEditingController passValue = TextEditingController();
 
   final AuthService authService = AuthService();
 
   bool isPasswordVisible = false;
   bool isLoading = false;
 
+  @override
+  void initState() {
+    super.initState();
+    loginAnonimo();
+  }
+
+  Future<void> loginAnonimo() async {
+    try {
+      await FirebaseAuth.instance.signInAnonymously();
+      print("Login anônimo feito");
+    } catch (e) {
+      print("Erro login anônimo: $e");
+    }
+  }
   @override
   void dispose() {
     emailValue.dispose();
@@ -45,48 +57,44 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     try {
-      setState(() {
-        isLoading = true;
-      });
+      setState(() => isLoading = true);
 
-      final authService = AuthService();
-
-      final response =
-      await authService.login(
-        email: emailValue.text,
-        senha: passValue.text,
+      final loginResponse = await authService.login(
+        email: emailValue.text.trim(),
+        senha: passValue.text.trim(),
       );
 
-      final user =
-      UserModel.fromLoginResponse(
-        response,
+
+      final user = UserModel(
+        nome: loginResponse.nome,
+        email: loginResponse.email,
+        tipo: loginResponse.tipo,
       );
 
-      context
-          .read<AuthViewModel>()
-          .setUser(user);
+      context.read<AuthViewModel>().setUser(user);
 
-      Navigator.pushReplacementNamed(
-        context,
-        '/home',
-      );
+      Navigator.pushReplacementNamed(context, '/home');
+
     } on DioException catch (e) {
-      String mensagemErro = 'Erro ao fazer login';
+      final data = e.response?.data;
 
-      if (e.response != null) {
-        mensagemErro =
-            e.response?.data['message'] ??
-                'Erro ${e.response?.statusCode}';
+      String msg = 'Erro ao fazer login';
+
+      if (data is Map && data['message'] != null) {
+        msg = data['message'];
+      } else if (e.message != null) {
+        msg = e.message!;
       }
 
-      mostrarMensagem(mensagemErro);
+
+      mostrarMensagem(msg);
+
     } catch (e) {
+
       mostrarMensagem('Erro inesperado');
     } finally {
       if (mounted) {
-        setState(() {
-          isLoading = false;
-        });
+        setState(() => isLoading = false);
       }
     }
   }
@@ -104,13 +112,10 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[200],
-
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding:
-            const EdgeInsets.symmetric(horizontal: 24),
-
+            padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Column(
               children: [
                 SvgPicture.asset(
@@ -137,38 +142,25 @@ class _LoginScreenState extends State<LoginScreen> {
                 Card(
                   elevation: 4,
                   shape: RoundedRectangleBorder(
-                    borderRadius:
-                    BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(16),
                   ),
                   child: Padding(
                     padding: const EdgeInsets.all(16),
-
                     child: Column(
                       children: [
                         TextField(
                           controller: emailValue,
-                          keyboardType:
-                          TextInputType.emailAddress,
-
                           decoration: InputDecoration(
-                            hintText:
-                            "Digite seu e-mail",
-
+                            hintText: "Digite seu e-mail",
                             prefixIcon: const Icon(
                               Icons.email,
-                              color:
-                              NeoGymColors.primary,
+                              color: NeoGymColors.primary,
                             ),
-
                             filled: true,
                             fillColor: Colors.grey[100],
-
                             border: OutlineInputBorder(
-                              borderRadius:
-                              BorderRadius.circular(
-                                  12),
-                              borderSide:
-                              BorderSide.none,
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide.none,
                             ),
                           ),
                         ),
@@ -177,30 +169,20 @@ class _LoginScreenState extends State<LoginScreen> {
 
                         TextField(
                           controller: passValue,
-                          obscureText:
-                          !isPasswordVisible,
-
+                          obscureText: !isPasswordVisible,
                           decoration: InputDecoration(
-                            hintText:
-                            "Digite sua senha",
-
+                            hintText: "Digite sua senha",
                             prefixIcon: const Icon(
                               Icons.lock,
-                              color:
-                              NeoGymColors.primary,
+                              color: NeoGymColors.primary,
                             ),
-
                             suffixIcon: IconButton(
                               icon: Icon(
                                 isPasswordVisible
                                     ? Icons.visibility
-                                    : Icons
-                                    .visibility_off,
-
-                                color:
-                                NeoGymColors.primary,
+                                    : Icons.visibility_off,
+                                color: NeoGymColors.primary,
                               ),
-
                               onPressed: () {
                                 setState(() {
                                   isPasswordVisible =
@@ -208,16 +190,11 @@ class _LoginScreenState extends State<LoginScreen> {
                                 });
                               },
                             ),
-
                             filled: true,
                             fillColor: Colors.grey[100],
-
                             border: OutlineInputBorder(
-                              borderRadius:
-                              BorderRadius.circular(
-                                  12),
-                              borderSide:
-                              BorderSide.none,
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide.none,
                             ),
                           ),
                         ),
@@ -227,25 +204,17 @@ class _LoginScreenState extends State<LoginScreen> {
                         SizedBox(
                           width: double.infinity,
                           height: 50,
-
                           child: ElevatedButton(
-                            onPressed: isLoading
-                                ? null
-                                : fazerLogin,
-
-                            style:
-                            ElevatedButton.styleFrom(
+                            onPressed:
+                            isLoading ? null : fazerLogin,
+                            style: ElevatedButton.styleFrom(
                               backgroundColor:
                               NeoGymColors.primary,
-
-                              shape:
-                              RoundedRectangleBorder(
+                              shape: RoundedRectangleBorder(
                                 borderRadius:
-                                BorderRadius
-                                    .circular(12),
+                                BorderRadius.circular(12),
                               ),
                             ),
-
                             child: isLoading
                                 ? const SizedBox(
                               width: 22,
@@ -253,14 +222,10 @@ class _LoginScreenState extends State<LoginScreen> {
                               child:
                               CircularProgressIndicator(
                                 strokeWidth: 2,
+                                color: Colors.white,
                               ),
                             )
-                                : const Text(
-                              "Entrar",
-                              style: TextStyle(
-                                fontSize: 16,
-                              ),
-                            ),
+                                : const Text("Entrar"),
                           ),
                         ),
                       ],
@@ -271,12 +236,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 20),
 
                 Row(
-                  mainAxisAlignment:
-                  MainAxisAlignment.center,
-
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const Text("Não possui conta?"),
-
                     TextButton(
                       onPressed: () {
                         Navigator.push(
@@ -287,14 +249,11 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         );
                       },
-
                       child: const Text(
                         "Criar conta",
                         style: TextStyle(
-                          color:
-                          NeoGymColors.primary,
-                          fontWeight:
-                          FontWeight.bold,
+                          color: NeoGymColors.primary,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),

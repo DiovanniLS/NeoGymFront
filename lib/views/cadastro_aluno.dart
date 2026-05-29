@@ -22,8 +22,13 @@ class _CadastroAlunoState extends State<CadastroAluno> {
 
   final Dio dio = Dio(
     BaseOptions(
-      baseUrl: 'http://10.0.2.2:8080/api/v1',
-      headers: {'Content-Type': 'application/json'},
+      baseUrl: 'https://neogym-production.up.railway.app/api/v1',
+      connectTimeout: const Duration(seconds: 15),
+      receiveTimeout: const Duration(seconds: 15),
+      sendTimeout: const Duration(seconds: 15),
+      headers: {
+        'Content-Type': 'application/json',
+      },
     ),
   );
 
@@ -103,11 +108,17 @@ class _CadastroAlunoState extends State<CadastroAluno> {
         MaterialPageRoute(builder: (_) => const EscolherAcademia()),
       );
     } on DioException catch (e) {
-      String mensagemErro = 'Erro ao cadastrar';
 
       if (e.response != null) {
-        mensagemErro =
-            e.response?.data['message'] ?? 'Erro ${e.response?.statusCode}';
+        final data = e.response?.data;
+
+        if (data is Map && data['message'] != null) {
+          mensagemErro = data['message'];
+        } else {
+          mensagemErro = 'Erro ${e.response?.statusCode}';
+        }
+      } else {
+        mensagemErro = 'Sem resposta do servidor (timeout ou crash)';
       }
 
       mostrarMensagem(mensagemErro);
