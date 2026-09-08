@@ -1,9 +1,6 @@
-import 'dart:typed_data';
-import 'package:flutter/services.dart';
-import 'dart:ui' as ui;
-
 import 'package:flutter/material.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 
 import '../Resources/neo_gym_colors.dart';
 import '../models/gym.dart';
@@ -19,268 +16,603 @@ enum MapMode {
 class MapScreen extends StatefulWidget {
   final Gym? gym;
 
-  const MapScreen({super.key, this.gym});
+  const MapScreen({
+    super.key,
+    this.gym,
+  });
 
   @override
   State<MapScreen> createState() => _MapScreenState();
 }
 
 class _MapScreenState extends State<MapScreen> {
-  GoogleMapController? mapController;
+  final MapController mapController = MapController();
+
   MapMode currentMode = MapMode.gyms;
 
   LatLng? userLocation;
   LatLng? gymLocation;
+
   Gym? selectedGym;
 
-  Set<Marker> markers = {};
-  Set<Polyline> polylines = {};
-  Set<Circle> circles = {};
+  List<Marker> markers = [];
+  List<Polyline> polylines = [];
+  List<CircleMarker> circles = [];
 
   String? distance;
   String? duration;
-  TextEditingController searchController = TextEditingController();
-  BitmapDescriptor? gymIcon;
+
+  final TextEditingController searchController =
+  TextEditingController();
+
+  bool mapReady = false;
+  bool loading = false;
 
   @override
   void initState() {
     super.initState();
+
     initMap();
   }
 
-  Future<void> initMap() async {
-    final pos = await LocationService.getUserLocation();
+  @override
+  void dispose() {
+    searchController.dispose();
+    mapController.dispose();
 
-    userLocation = LatLng(pos.latitude, pos.longitude);
-
-    gymLocation = widget.gym != null
-        ? LatLng(widget.gym!.lat, widget.gym!.lng)
-        : null;
-    gymIcon ??= await getCustomMarker("assets/icons/academia.png");
-    selectedGym = widget.gym;
-
-    setState(() {});
+    super.dispose();
   }
 
-  void _fitCamera() {
-    if (mapController == null || userLocation == null || gymLocation == null)
-      return;
+  // ==========================================================
+  // INICIALIZAÇÃO
+  // ==========================================================
 
-    mapController!.animateCamera(
-      CameraUpdate.newLatLngBounds(
-        LatLngBounds(
-          southwest: LatLng(
-            userLocation!.latitude < gymLocation!.latitude
-                ? userLocation!.latitude
-                : gymLocation!.latitude,
-            userLocation!.longitude < gymLocation!.longitude
-                ? userLocation!.longitude
-                : gymLocation!.longitude,
+  Future<void> initMap() async {
+    try {
+      final pos =
+      await LocationService.getUserLocation();
+
+      final location = LatLng(
+        pos.latitude,
+        pos.longitude,
+      );
+
+      Gym? initialGym = widget.gym;
+
+      LatLng? initialGymLocation;
+
+      if (initialGym != null) {
+        initialGymLocation = LatLng(
+          initialGym.lat,
+          initialGym.lng,
+        );
+      }
+
+      if (!mounted) return;
+
+      setState(() {
+        userLocation = location;
+
+        selectedGym = initialGym;
+
+        gymLocation = initialGymLocation;
+
+        markers = [
+          _buildUserMarker(location),
+
+          if (initialGym != null)
+            _buildGymMarker(initialGym),
+        ];
+      });
+
+      /*
+       * Se o mapa já tiver terminado de carregar,
+       * podemos carregar a rota imediatamente.
+       *
+       * Normalmente quem dispara isso será o
+       * onMapReady.
+       */
+      if (mapReady &&
+          gymLocation != null) {
+        await loadRoute();
+
+        _fitCamera();
+      }
+    } catch (e) {
+      debugPrint(
+        'Erro ao iniciar mapa: $e',
+      );
+    }
+  }
+
+  // ==========================================================
+  // MARKER USUÁRIO
+  // ==========================================================
+
+  Marker _buildUserMarker(
+      LatLng position,
+      ) {
+    return Marker(
+      point: position,
+
+      width: 46,
+      height: 46,
+
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.blue,
+          shape: BoxShape.circle,
+
+          border: Border.all(
+            color: Colors.white,
+            width: 4,
           ),
-          northeast: LatLng(
-            userLocation!.latitude > gymLocation!.latitude
-                ? userLocation!.latitude
-                : gymLocation!.latitude,
-            userLocation!.longitude > gymLocation!.longitude
-                ? userLocation!.longitude
-                : gymLocation!.longitude,
-          ),
+
+          boxShadow: const [
+            BoxShadow(
+              color: Colors.black26,
+              blurRadius: 7,
+            ),
+          ],
         ),
-        100,
+
+        child: const Icon(
+          Icons.person,
+          color: Colors.white,
+          size: 22,
+        ),
       ),
     );
   }
 
-  Future<void> loadRoute() async {
-    if (userLocation == null || gymLocation == null) return;
+  // ==========================================================
+  // MARKER ACADEMIA
+  // ==========================================================
 
-    final points = await PlacesService.getRouteCoordinates(
-      userLocation!.latitude,
-      userLocation!.longitude,
-      gymLocation!.latitude,
-      gymLocation!.longitude,
-    );
+  Marker _buildGymMarker(
+      Gym gym, {
+        bool clickable = false,
+      }) {
+    return Marker(
+      point: LatLng(
+        gym.lat,
+        gym.lng,
+      ),
 
-    setState(() {
-      polylines = {
-        Polyline(
-          polylineId: const PolylineId("route"),
-          color: Colors.blue,
-          width: 5,
-          points: points,
+      width: 55,
+      height: 55,
+
+      child: GestureDetector(
+        onTap: clickable
+            ? () async {
+          setState(() {
+            selectedGym = gym;
+
+            gymLocation = LatLng(
+              gym.lat,
+              gym.lng,
+            );
+
+            distance = null;
+            duration = null;
+          });
+
+          await loadRoute();
+
+          _fitCamera();
+        }
+            : null,
+
+        child: Image.asset(
+          'assets/icons/academia.png',
+
+          width: 50,
+          height: 50,
+
+          fit: BoxFit.contain,
         ),
-      };
-    });
-
-    final info = await PlacesService.getRouteInfo(
-      userLocation!.latitude,
-      userLocation!.longitude,
-      gymLocation!.latitude,
-      gymLocation!.longitude,
+      ),
     );
-
-    setState(() {
-      distance = info["distance"];
-      duration = info["duration"];
-
-      markers = {
-        Marker(markerId: const MarkerId("user"), position: userLocation!),
-        Marker(
-          markerId: const MarkerId("gym"),
-          position: gymLocation!,
-          icon: gymIcon ?? BitmapDescriptor.defaultMarker,
-        ),
-      };
-    });
   }
 
-  Future<void> loadGymMode() async {
-    polylines = {};
+  // ==========================================================
+  // AJUSTAR CÂMERA ENTRE USUÁRIO E ACADEMIA
+  // ==========================================================
 
-    final pos = await LocationService.getUserLocation();
-
-    final gyms = await PlacesService.searchGyms(
-      pos.latitude,
-      pos.longitude,
-    );
-
-    Set<Marker> gymMarkers = {};
-
-    for (var gym in gyms) {
-      gymMarkers.add(
-        Marker(
-          markerId: MarkerId(gym.name),
-          position: LatLng(gym.lat, gym.lng),
-          icon: gymIcon ?? BitmapDescriptor.defaultMarker,
-          onTap: () async {
-            setState(() {
-              selectedGym = gym;
-              gymLocation = LatLng(gym.lat, gym.lng);
-            });
-
-            await loadRoute();
-            _fitCamera();
-          },
-        ),
-      );
+  void _fitCamera() {
+    if (!mapReady ||
+        userLocation == null ||
+        gymLocation == null) {
+      return;
     }
 
-    setState(() {
-      markers = gymMarkers;
-      circles = {};
-    });
+    mapController.fitCamera(
+      CameraFit.coordinates(
+        coordinates: [
+          userLocation!,
+          gymLocation!,
+        ],
+
+        padding:
+        const EdgeInsets.all(80),
+
+        maxZoom: 16,
+      ),
+    );
   }
 
-  Future<void> loadProfessionalMode() async {
-    polylines = {};
+  // ==========================================================
+  // CARREGAR ROTA
+  // ==========================================================
 
-    Set<Marker> profMarkers = {};
-    Set<Circle> profCircles = {};
+  Future<void> loadRoute() async {
+    if (userLocation == null ||
+        gymLocation == null) {
+      return;
+    }
+
+    try {
+      setState(() {
+        loading = true;
+      });
+
+      final points =
+      await PlacesService
+          .getRouteCoordinates(
+        userLocation!.latitude,
+        userLocation!.longitude,
+        gymLocation!.latitude,
+        gymLocation!.longitude,
+      );
+
+      final info =
+      await PlacesService.getRouteInfo(
+        userLocation!.latitude,
+        userLocation!.longitude,
+        gymLocation!.latitude,
+        gymLocation!.longitude,
+      );
+
+      if (!mounted) return;
+
+      final List<Marker> routeMarkers = [
+        _buildUserMarker(
+          userLocation!,
+        ),
+      ];
+
+      if (selectedGym != null) {
+        routeMarkers.add(
+          _buildGymMarker(
+            selectedGym!,
+          ),
+        );
+      }
+
+      setState(() {
+        polylines = points.isEmpty
+            ? []
+            : [
+          Polyline(
+            points: points,
+            color:
+            NeoGymColors.primary,
+            strokeWidth: 5,
+          ),
+        ];
+
+        distance =
+            info['distance']?.toString();
+
+        duration =
+            info['duration']?.toString();
+
+        markers = routeMarkers;
+
+        circles = [];
+
+        loading = false;
+      });
+    } catch (e) {
+      debugPrint(
+        'Erro ao carregar rota: $e',
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        loading = false;
+      });
+    }
+  }
+
+  // ==========================================================
+  // MODO ACADEMIAS
+  // ==========================================================
+
+  Future<void> loadGymMode() async {
+    if (userLocation == null) {
+      return;
+    }
+
+    try {
+      setState(() {
+        loading = true;
+
+        polylines = [];
+        circles = [];
+
+        distance = null;
+        duration = null;
+      });
+
+      final gyms =
+      await PlacesService.searchGyms(
+        userLocation!.latitude,
+        userLocation!.longitude,
+      );
+
+      if (!mounted) return;
+
+      final List<Marker> gymMarkers = [
+        _buildUserMarker(
+          userLocation!,
+        ),
+      ];
+
+      for (final gym in gyms) {
+        gymMarkers.add(
+          _buildGymMarker(
+            gym,
+            clickable: true,
+          ),
+        );
+      }
+
+      setState(() {
+        markers = gymMarkers;
+
+        loading = false;
+      });
+    } catch (e) {
+      debugPrint(
+        'Erro ao carregar academias: $e',
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        loading = false;
+      });
+    }
+  }
+
+  // ==========================================================
+  // MODO PROFISSIONAIS
+  // ==========================================================
+
+  Future<void> loadProfessionalMode() async {
+    if (userLocation == null) {
+      return;
+    }
+
+    final List<Marker> profMarkers = [
+      _buildUserMarker(
+        userLocation!,
+      ),
+    ];
+
+    final List<CircleMarker>
+    profCircles = [];
 
     for (final prof in professionals) {
-      final position = LatLng(prof["lat"], prof["lng"]);
+      final double lat =
+      (prof['lat'] as num).toDouble();
+
+      final double lng =
+      (prof['lng'] as num).toDouble();
+
+      final double radiusKm =
+      ((prof['radiusKm'] ?? 2) as num)
+          .toDouble();
+
+      final String id =
+      prof['id'].toString();
+
+      final position =
+      LatLng(lat, lng);
+
+      // =============================
+      // MARKER PROFISSIONAL
+      // =============================
 
       profMarkers.add(
         Marker(
-          markerId: MarkerId(prof["id"]),
-          position: position,
-          onTap: () {
-            // depois você liga no perfil real
-          },
+          point: position,
+
+          width: 50,
+          height: 50,
+
+          child: GestureDetector(
+            onTap: () {
+              debugPrint(
+                'Profissional: $id',
+              );
+
+              // Depois podemos abrir
+              // o perfil do profissional.
+            },
+
+            child: Container(
+              decoration: BoxDecoration(
+                color:
+                NeoGymColors.primary,
+                shape: BoxShape.circle,
+
+                border: Border.all(
+                  color: Colors.white,
+                  width: 3,
+                ),
+
+                boxShadow: const [
+                  BoxShadow(
+                    color:
+                    Colors.black26,
+                    blurRadius: 6,
+                  ),
+                ],
+              ),
+
+              child: const Icon(
+                Icons.person_outline,
+                color: Colors.white,
+              ),
+            ),
+          ),
         ),
       );
 
+      // =============================
+      // RAIO DE ATUAÇÃO
+      // =============================
+
       profCircles.add(
-        Circle(
-          circleId: CircleId(prof["id"]),
-          center: position,
-          radius: (prof["radiusKm"] ?? 2) * 1000,
-          fillColor: Colors.blue.withOpacity(0.15),
-          strokeColor: Colors.blue,
-          strokeWidth: 2,
+        CircleMarker(
+          point: position,
+
+          /*
+           * Como estamos colocando:
+           *
+           * useRadiusInMeter: true
+           *
+           * radius passa a ser metros.
+           */
+          radius:
+          radiusKm * 1000,
+
+          useRadiusInMeter: true,
+
+          color:
+          Colors.blue.withOpacity(
+            0.15,
+          ),
+
+          borderColor:
+          Colors.blue,
+
+          borderStrokeWidth: 2,
         ),
       );
     }
 
+    if (!mounted) return;
+
     setState(() {
       markers = profMarkers;
+
       circles = profCircles;
+
+      polylines = [];
+
+      selectedGym = null;
+      gymLocation = null;
+
+      distance = null;
+      duration = null;
     });
   }
 
+  // ==========================================================
+  // BUSCAR ACADEMIA
+  // ==========================================================
+
+  Future<void> searchGym(
+      String value,
+      ) async {
+    if (userLocation == null) {
+      return;
+    }
+
+    try {
+      setState(() {
+        loading = true;
+
+        polylines = [];
+
+        distance = null;
+        duration = null;
+      });
+
+      final gyms =
+      await PlacesService
+          .searchGymByName(
+        value,
+        userLocation!.latitude,
+        userLocation!.longitude,
+      );
+
+      if (!mounted) return;
+
+      final List<Marker>
+      gymMarkers = [
+        _buildUserMarker(
+          userLocation!,
+        ),
+      ];
+
+      for (final gym in gyms) {
+        gymMarkers.add(
+          _buildGymMarker(
+            gym,
+            clickable: true,
+          ),
+        );
+      }
+
+      setState(() {
+        markers = gymMarkers;
+
+        circles = [];
+
+        loading = false;
+      });
+
+      // Centraliza na primeira academia
+      // encontrada.
+      if (gyms.isNotEmpty &&
+          mapReady) {
+        mapController.move(
+          LatLng(
+            gyms.first.lat,
+            gyms.first.lng,
+          ),
+          14,
+        );
+      }
+    } catch (e) {
+      debugPrint(
+        'Erro na pesquisa: $e',
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        loading = false;
+      });
+    }
+  }
+
+  // ==========================================================
+  // BUILD
+  // ==========================================================
 
   @override
   Widget build(BuildContext context) {
     if (userLocation == null) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    }
-
-    Widget buildSearchBar() {
-      return Positioned(
-        top: 50,
-        left: 16,
-        right: 16,
-        child: Material(
-          elevation: 6,
-          borderRadius: BorderRadius.circular(30),
-          child: TextField(
-            controller: searchController,
-            onSubmitted: (value) async {
-              final pos = await LocationService.getUserLocation();
-
-              final gyms = await PlacesService.searchGymByName(
-                value,
-                pos.latitude,
-                pos.longitude,
-              );
-
-              Set<Marker> gymMarkers = {};
-
-              for (var gym in gyms) {
-                gymMarkers.add(
-                  Marker(
-                    markerId: MarkerId(gym.name),
-                    position: LatLng(gym.lat, gym.lng),
-                    icon: gymIcon!,
-
-                    onTap: () async {
-                      setState(() {
-                        selectedGym = gym;
-                        gymLocation = LatLng(gym.lat, gym.lng);
-                      });
-
-                      await loadRoute();
-                      _fitCamera();
-                    },
-                  ),
-                );
-              }
-
-              setState(() {
-                markers = {
-                  ...gymMarkers,
-
-                  if (userLocation != null)
-                    Marker(
-                      markerId: const MarkerId("user"),
-                      position: userLocation!,
-                    ),
-                };
-              });
-            },
-            decoration: InputDecoration(
-              hintText: "Buscar academia...",
-              prefixIcon: Icon(Icons.search, color: NeoGymColors.primary),
-              suffixIcon: IconButton(
-                onPressed: () {
-                  searchController.text = '';
-                },
-                icon: Icon(Icons.cancel, color: NeoGymColors.primary),
-              ),
-              border: InputBorder.none,
-              contentPadding: EdgeInsets.symmetric(vertical: 15),
-            ),
-          ),
+      return const Scaffold(
+        body: Center(
+          child:
+          CircularProgressIndicator(),
         ),
       );
     }
@@ -288,49 +620,138 @@ class _MapScreenState extends State<MapScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          GoogleMap(
-            initialCameraPosition: CameraPosition(
-              target: userLocation!,
-              zoom: 14,
-            ),
-            markers: markers,
-            polylines: polylines,
-            circles: circles,
-            myLocationEnabled: true,
-            onMapCreated: (controller) async {
-              mapController = controller;
 
-              if (gymLocation != null) {
-                await loadRoute();
-                _fitCamera();
-              }
-            },
+          // ==========================================
+          // MAPA OPENSTREETMAP
+          // ==========================================
+
+          FlutterMap(
+            mapController:
+            mapController,
+
+            options: MapOptions(
+              initialCenter:
+              userLocation!,
+
+              initialZoom: 14,
+
+              onMapReady: () {
+                mapReady = true;
+
+                if (gymLocation !=
+                    null) {
+                  loadRoute().then((_) {
+                    if (mounted) {
+                      _fitCamera();
+                    }
+                  });
+                }
+              },
+
+              onTap:
+                  (tapPosition, point) {
+                debugPrint(
+                  'Mapa: '
+                      '${point.latitude}, '
+                      '${point.longitude}',
+                );
+              },
+            ),
+
+            children: [
+
+              // ======================================
+              // BASE DO MAPA
+              // ======================================
+
+              TileLayer(
+                urlTemplate:
+                'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+
+                /*
+                 * Coloque aqui o package
+                 * real do NeoGym.
+                 */
+                userAgentPackageName:
+                'com.neogym.app',
+              ),
+
+              // ======================================
+              // RAIO DOS PROFISSIONAIS
+              // ======================================
+
+              if (circles.isNotEmpty)
+                CircleLayer(
+                  circles: circles,
+                ),
+
+              // ======================================
+              // ROTA
+              // ======================================
+
+              if (polylines.isNotEmpty)
+                PolylineLayer(
+                  polylines:
+                  polylines,
+                ),
+
+              // ======================================
+              // MARKERS
+              // ======================================
+
+              MarkerLayer(
+                markers: markers,
+              ),
+
+              // ======================================
+              // ATRIBUIÇÃO
+              // ======================================
+
+              const RichAttributionWidget(
+                attributions: [
+                  TextSourceAttribution(
+                    'OpenStreetMap contributors',
+                  ),
+                ],
+              ),
+            ],
           ),
-          buildSearchBar(),
-          buildBottomCard(),
+
+          // ==========================================
+          // SELETOR DE MODO
+          // ==========================================
+
           Positioned(
             top: 50,
             left: 16,
             right: 16,
 
             child: Row(
-
               children: [
 
                 Expanded(
                   child: ChoiceChip(
-
-                    label: const Text(
-                      "Academias",
+                    label:
+                    const Text(
+                      'Academias',
                     ),
 
                     selected:
                     currentMode ==
-                        MapMode.gyms,
+                        MapMode
+                            .gyms,
 
                     onSelected: (_) {
                       setState(() {
-                        currentMode = MapMode.gyms;
+                        currentMode =
+                            MapMode
+                                .gyms;
+
+                        selectedGym =
+                        null;
+
+                        gymLocation =
+                        null;
                       });
 
                       loadGymMode();
@@ -338,22 +759,27 @@ class _MapScreenState extends State<MapScreen> {
                   ),
                 ),
 
-                const SizedBox(width: 10),
+                const SizedBox(
+                  width: 10,
+                ),
 
                 Expanded(
                   child: ChoiceChip(
-
-                    label: const Text(
-                      "Profissionais",
+                    label:
+                    const Text(
+                      'Profissionais',
                     ),
 
                     selected:
                     currentMode ==
-                        MapMode.professionals,
+                        MapMode
+                            .professionals,
 
                     onSelected: (_) {
                       setState(() {
-                        currentMode = MapMode.professionals;
+                        currentMode =
+                            MapMode
+                                .professionals;
                       });
 
                       loadProfessionalMode();
@@ -362,23 +788,152 @@ class _MapScreenState extends State<MapScreen> {
                 ),
               ],
             ),
-          )
+          ),
+
+          // ==========================================
+          // PESQUISA
+          // ==========================================
+
+          if (currentMode ==
+              MapMode.gyms)
+            buildSearchBar(),
+
+          // ==========================================
+          // LOADING
+          // ==========================================
+
+          if (loading)
+            const Positioned(
+              top: 170,
+              left: 0,
+              right: 0,
+
+              child: Center(
+                child:
+                CircularProgressIndicator(),
+              ),
+            ),
+
+          // ==========================================
+          // CARD
+          // ==========================================
+
+          if (currentMode ==
+              MapMode.gyms)
+            buildBottomCard(),
         ],
       ),
     );
   }
 
+  // ==========================================================
+  // BARRA DE PESQUISA
+  // ==========================================================
+
+  Widget buildSearchBar() {
+    return Positioned(
+      /*
+       * Antes você tinha:
+       *
+       * ChoiceChip top: 50
+       * SearchBar top: 50
+       *
+       * então eles se sobrepunham.
+       */
+
+      top: 105,
+      left: 16,
+      right: 16,
+
+      child: Material(
+        elevation: 6,
+
+        borderRadius:
+        BorderRadius.circular(
+          30,
+        ),
+
+        child: TextField(
+          controller:
+          searchController,
+
+          onSubmitted: searchGym,
+
+          decoration: InputDecoration(
+            hintText:
+            'Buscar academia...',
+
+            prefixIcon: Icon(
+              Icons.search,
+              color:
+              NeoGymColors.primary,
+            ),
+
+            suffixIcon: IconButton(
+              onPressed: () {
+                searchController
+                    .clear();
+
+                loadGymMode();
+              },
+
+              icon: Icon(
+                Icons.cancel,
+                color:
+                NeoGymColors.primary,
+              ),
+            ),
+
+            border:
+            InputBorder.none,
+
+            contentPadding:
+            const EdgeInsets
+                .symmetric(
+              vertical: 15,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ==========================================================
+  // CARD INFERIOR
+  // ==========================================================
+
   Widget buildBottomCard() {
-    String message = "Academia próxima 💪";
+    String message =
+        'Academia próxima 💪';
 
     if (distance != null) {
-      final km = double.tryParse(distance!.replaceAll(RegExp('[^0-9.]'), ''));
+      /*
+       * O novo service devolve algo como:
+       *
+       * 1.5 km
+       * 850 m
+       */
 
-      if (km != null) {
-        if (km > 5) {
-          message = "Tá longe, mas bora manter o foco 🔥";
-        } else if (km > 2) {
-          message = "Distância média, já dá um aquecimento 😅";
+      if (distance!.contains('km')) {
+        final number =
+        distance!
+            .replaceAll(
+          'km',
+          '',
+        )
+            .trim();
+
+        final km =
+        double.tryParse(number);
+
+        if (km != null) {
+          if (km > 5) {
+            message =
+            'Tá longe, mas bora manter o foco 🔥';
+          } else if (km > 2) {
+            message =
+            'Distância média, já dá um aquecimento 😅';
+          }
         }
       }
     }
@@ -387,25 +942,59 @@ class _MapScreenState extends State<MapScreen> {
       bottom: 50,
       left: 16,
       right: 16,
+
       child: Card(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape:
+        RoundedRectangleBorder(
+          borderRadius:
+          BorderRadius.circular(
+            20,
+          ),
+        ),
+
         elevation: 10,
+
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding:
+          const EdgeInsets.all(
+            16,
+          ),
+
           child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.center,
+            mainAxisSize:
+            MainAxisSize.min,
+
+            crossAxisAlignment:
+            CrossAxisAlignment
+                .center,
+
             children: [
+
               Row(
                 children: [
-                  Icon(Icons.fitness_center, size: 28),
-                  SizedBox(width: 10),
+
+                  const Icon(
+                    Icons
+                        .fitness_center,
+                    size: 28,
+                  ),
+
+                  const SizedBox(
+                    width: 10,
+                  ),
 
                   Expanded(
                     child: Text(
-                      selectedGym?.name ?? "Academia",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
+                      selectedGym
+                          ?.name ??
+                          'Selecione uma academia',
+
+                      style:
+                      const TextStyle(
+                        fontWeight:
+                        FontWeight
+                            .bold,
+
                         fontSize: 16,
                       ),
                     ),
@@ -413,41 +1002,54 @@ class _MapScreenState extends State<MapScreen> {
                 ],
               ),
 
-              SizedBox(height: 8),
+              if (selectedGym != null)
+                ...[
+                  const SizedBox(
+                    height: 8,
+                  ),
 
-              Text(
-                "${distance ?? '--'} • ${duration ?? '--'}",
-                style: TextStyle(color: Colors.grey[600]),
-              ),
+                  Text(
+                    '${distance ?? '--'}'
+                        ' • '
+                        '${duration ?? '--'}',
 
-              SizedBox(height: 8),
+                    style: TextStyle(
+                      color: Colors
+                          .grey[600],
+                    ),
+                  ),
 
-              Text(message),
+                  const SizedBox(
+                    height: 8,
+                  ),
 
-              SizedBox(height: 10),
+                  Text(message),
 
-              ElevatedButton(onPressed: () {}, child: Text("Iniciar treino")),
+                  const SizedBox(
+                    height: 10,
+                  ),
+
+                  SizedBox(
+                    width:
+                    double.infinity,
+
+                    child:
+                    ElevatedButton(
+                      onPressed: () {
+                        // iniciar treino
+                      },
+
+                      child:
+                      const Text(
+                        'Iniciar treino',
+                      ),
+                    ),
+                  ),
+                ],
             ],
           ),
         ),
       ),
     );
-  }
-
-  Future<BitmapDescriptor> getCustomMarker(String path) async {
-    final ByteData data = await rootBundle.load(path);
-    final Uint8List bytes = data.buffer.asUint8List();
-
-    final codec = await ui.instantiateImageCodec(
-      bytes,
-      targetWidth: 100, // tamanho do ícone
-    );
-
-    final frame = await codec.getNextFrame();
-    final byteData = await frame.image.toByteData(
-      format: ui.ImageByteFormat.png,
-    );
-
-    return BitmapDescriptor.fromBytes(byteData!.buffer.asUint8List());
   }
 }

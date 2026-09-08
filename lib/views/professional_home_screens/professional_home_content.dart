@@ -17,32 +17,35 @@ class _ProfessionalHomeContentState
   Widget build(BuildContext context) {
     final user = context.watch<AuthViewModel>().user;
 
-    return SafeArea(
-      child: SingleChildScrollView(
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            children: [
-              _buildHeader(user?.nome ?? "Profissional"),
+    return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              children: [
+                _buildHeader(user?.nome ?? "Profissional"),
 
-              const SizedBox(height: 30),
+                const SizedBox(height: 30),
 
-              _buildAppointmentsCard(),
+                _buildAppointmentsCard(),
 
-              const SizedBox(height: 30),
+                const SizedBox(height: 30),
 
-              _buildClientsCard(),
+                _buildClientsCard(),
 
-              const SizedBox(height: 30),
+                const SizedBox(height: 30),
 
-              _buildMessagesCard(),
-            ],
+                _buildMessagesCard(),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
-
   Widget _buildHeader(String name) {
     return Row(
       children: [
@@ -95,7 +98,9 @@ class _ProfessionalHomeContentState
         ],
       ),
       button: ElevatedButton(
-        onPressed: () {},
+        onPressed: () {
+          Navigator.pushNamed(context, "/agendaPro");
+        },
         child: const Text("Ver agenda"),
       ),
     );
@@ -144,7 +149,9 @@ class _ProfessionalHomeContentState
         ],
       ),
       button: ElevatedButton(
-        onPressed: () {},
+        onPressed: () {
+          Navigator.pushNamed(context, "/proClientScreen");
+        },
         child: const Text("Ver Clientes"),
       ),
     );

@@ -5,6 +5,8 @@ import 'package:neogym/Resources/neo_gym_colors.dart';
 import 'package:neogym/Views/escolher_academia.dart';
 import 'package:neogym/components/input_field.dart';
 
+import '../services/api_client.dart';
+
 class CadastroAluno extends StatefulWidget {
   const CadastroAluno({super.key});
 
@@ -20,17 +22,6 @@ class _CadastroAlunoState extends State<CadastroAluno> {
   final TextEditingController pesoValue = TextEditingController();
   final TextEditingController alturaValue = TextEditingController();
 
-  final Dio dio = Dio(
-    BaseOptions(
-      baseUrl: 'https://neogym-production.up.railway.app/api/v1',
-      connectTimeout: const Duration(seconds: 15),
-      receiveTimeout: const Duration(seconds: 15),
-      sendTimeout: const Duration(seconds: 15),
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    ),
-  );
 
   bool rememberPass = false;
   bool isPasswordVisible = false;
@@ -48,6 +39,7 @@ class _CadastroAlunoState extends State<CadastroAluno> {
   }
 
   Future<void> cadastrarAluno() async {
+    String mensagemErro = "";
     FocusScope.of(context).unfocus();
 
     if (nameValue.text.trim().isEmpty ||
@@ -86,7 +78,7 @@ class _CadastroAlunoState extends State<CadastroAluno> {
       });
 
 
-      await dio.post(
+      await ApiClient.dio.post(
         '/auth/cadastro/aluno',
         data: {
           "nome": nameValue.text.trim(),

@@ -1,10 +1,6 @@
-import 'dart:typed_data';
-import 'dart:ui' as ui;
-
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:neogym/views/professional_home_screens/professional_home_content.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 
 import '../../Resources/neo_gym_colors.dart';
 import '../../services/location_service.dart';
@@ -22,111 +18,254 @@ class SelectWorkPlaces extends StatefulWidget {
 }
 
 class _SelectWorkPlacesState extends State<SelectWorkPlaces> {
-  GoogleMapController? mapController;
-
   LatLng? userLocation;
 
   LatLng? selectedCenter;
+
   double radiusKm = 3;
 
   @override
   void initState() {
     super.initState();
+
     initMap();
   }
 
   Future<void> initMap() async {
-    final pos = await LocationService.getUserLocation();
+    try {
+      final pos = await LocationService.getUserLocation();
 
-    userLocation = LatLng(pos.latitude, pos.longitude);
+      if (!mounted) return;
 
-    setState(() {});
+      setState(() {
+        userLocation = LatLng(
+          pos.latitude,
+          pos.longitude,
+        );
+      });
+    } catch (e) {
+      debugPrint(
+        'Erro ao obter localização: $e',
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     if (userLocation == null) {
       return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
       );
     }
 
     return Scaffold(
       body: Stack(
         children: [
-          GoogleMap(
-            initialCameraPosition: CameraPosition(
-              target: userLocation!,
-              zoom: 14,
+
+          // ====================================================
+          // MAPA
+          // ====================================================
+
+          FlutterMap(
+            options: MapOptions(
+              initialCenter: userLocation!,
+              initialZoom: 14,
+
+              // Clicar no mapa para escolher
+              // o centro da área de atuação.
+              onTap: (tapPosition, point) {
+                setState(() {
+                  selectedCenter = point;
+                });
+              },
             ),
 
-            myLocationEnabled: true,
+            children: [
 
-            onMapCreated: (controller) {
-              mapController = controller;
-            },
+              // =================================================
+              // OPEN STREET MAP
+              // =================================================
 
-            onTap: (LatLng pos) {
-              setState(() {
-                selectedCenter = pos;
-              });
-            },
+              TileLayer(
+                urlTemplate:
+                'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
 
-            markers: {
+                // Troque pelo package name real
+                // do seu aplicativo.
+                userAgentPackageName:
+                'com.neogym.app',
+              ),
+
+              // =================================================
+              // RAIO DE ATUAÇÃO
+              // =================================================
+
               if (selectedCenter != null)
-                Marker(
-                  markerId: const MarkerId("center"),
-                  position: selectedCenter!,
-                ),
-            },
+                CircleLayer(
+                  circles: [
+                    CircleMarker(
+                      point: selectedCenter!,
 
-            circles: {
-              if (selectedCenter != null)
-                Circle(
-                  circleId: const CircleId("radius"),
-                  center: selectedCenter!,
-                  radius: radiusKm * 1000,
-                  fillColor: Colors.blue.withOpacity(0.15),
-                  strokeColor: Colors.blue,
-                  strokeWidth: 2,
+                      /*
+                       * radius está em METROS
+                       * por causa de:
+                       *
+                       * useRadiusInMeter: true
+                       */
+                      radius: radiusKm * 1000,
+
+                      useRadiusInMeter: true,
+
+                      color: Colors.blue.withOpacity(
+                        0.15,
+                      ),
+
+                      borderColor: Colors.blue,
+
+                      borderStrokeWidth: 2,
+                    ),
+                  ],
                 ),
-            },
+
+              // =================================================
+              // MARCADORES
+              // =================================================
+
+              MarkerLayer(
+                markers: [
+
+                  // ===============================================
+                  // LOCALIZAÇÃO ATUAL DO USUÁRIO
+                  // ===============================================
+
+                  Marker(
+                    point: userLocation!,
+
+                    width: 45,
+                    height: 45,
+
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.blue,
+
+                        shape: BoxShape.circle,
+
+                        border: Border.all(
+                          color: Colors.white,
+                          width: 4,
+                        ),
+
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Colors.black26,
+                            blurRadius: 7,
+                          ),
+                        ],
+                      ),
+
+                      child: const Icon(
+                        Icons.person,
+                        color: Colors.white,
+                        size: 21,
+                      ),
+                    ),
+                  ),
+
+                  // ===============================================
+                  // CENTRO DA ÁREA ESCOLHIDA
+                  // ===============================================
+
+                  if (selectedCenter != null)
+                    Marker(
+                      point: selectedCenter!,
+
+                      width: 50,
+                      height: 50,
+
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: NeoGymColors.primary,
+
+                          shape: BoxShape.circle,
+
+                          border: Border.all(
+                            color: Colors.white,
+                            width: 3,
+                          ),
+
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Colors.black26,
+                              blurRadius: 7,
+                            ),
+                          ],
+                        ),
+
+                        child: const Icon(
+                          Icons.location_on,
+                          color: Colors.white,
+                          size: 28,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+
+              // =================================================
+              // ATRIBUIÇÃO OSM
+              // =================================================
+
+              const RichAttributionWidget(
+                attributions: [
+                  TextSourceAttribution(
+                    'OpenStreetMap contributors',
+                  ),
+                ],
+              ),
+            ],
           ),
 
-          // 🎚️ RAIO
+          // ====================================================
+          // INSTRUÇÃO
+          // ====================================================
+
           Positioned(
-            bottom: 140,
+            top: 50,
             left: 16,
             right: 16,
+
             child: Card(
-              elevation: 10,
+              elevation: 6,
+
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(
+                  20,
+                ),
               ),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
+
+              child: const Padding(
+                padding: EdgeInsets.symmetric(
+                  vertical: 12,
+                  horizontal: 16,
+                ),
+
+                child: Row(
                   children: [
-                    const Text(
-                      "Raio de atuação",
-                      style: TextStyle(fontWeight: FontWeight.bold),
+                    Icon(
+                      Icons.touch_app,
                     ),
 
-                    const SizedBox(height: 10),
+                    SizedBox(
+                      width: 10,
+                    ),
 
-                    Text("${radiusKm.toInt()} km"),
-
-                    Slider(
-                      value: radiusKm,
-                      min: 1,
-                      max: 20,
-                      divisions: 19,
-                      label: "${radiusKm.toInt()} km",
-                      onChanged: (value) {
-                        setState(() {
-                          radiusKm = value;
-                        });
-                      },
+                    Expanded(
+                      child: Text(
+                        'Toque no mapa para escolher '
+                            'o centro da sua área de atuação.',
+                      ),
                     ),
                   ],
                 ),
@@ -134,18 +273,150 @@ class _SelectWorkPlacesState extends State<SelectWorkPlaces> {
             ),
           ),
 
-          // 💾 CONFIRMAR
+          // ====================================================
+          // RAIO
+          // ====================================================
+
+          Positioned(
+            bottom: 140,
+            left: 16,
+            right: 16,
+
+            child: Card(
+              elevation: 10,
+
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(
+                  20,
+                ),
+              ),
+
+              child: Padding(
+                padding: const EdgeInsets.all(
+                  16,
+                ),
+
+                child: Column(
+                  children: [
+
+                    const Text(
+                      'Raio de atuação',
+
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+
+                    const SizedBox(
+                      height: 10,
+                    ),
+
+                    Text(
+                      '${radiusKm.toInt()} km',
+
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: NeoGymColors.primary,
+                      ),
+                    ),
+
+                    Slider(
+                      value: radiusKm,
+
+                      min: 1,
+
+                      max: 20,
+
+                      divisions: 19,
+
+                      label:
+                      '${radiusKm.toInt()} km',
+
+                      onChanged:
+                      selectedCenter == null
+                          ? null
+                          : (value) {
+                        setState(() {
+                          radiusKm =
+                              value;
+                        });
+                      },
+                    ),
+
+                    const Row(
+                      mainAxisAlignment:
+                      MainAxisAlignment
+                          .spaceBetween,
+
+                      children: [
+                        Text(
+                          '1 km',
+                        ),
+
+                        Text(
+                          '20 km',
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          // ====================================================
+          // CONFIRMAR
+          // ====================================================
+
           Positioned(
             bottom: 30,
             left: 16,
             right: 16,
-            child: ElevatedButton(
-              onPressed: selectedCenter == null
-                  ? null
-                  : () {
-                Navigator.pushReplacementNamed(context, "/homePro");
-              },
-              child: const Text("Salvar área de atuação"),
+
+            child: SizedBox(
+              height: 52,
+
+              child: ElevatedButton.icon(
+                onPressed:
+                selectedCenter == null
+                    ? null
+                    : () {
+                  debugPrint(
+                    'Área selecionada:',
+                  );
+
+                  debugPrint(
+                    'Latitude: '
+                        '${selectedCenter!.latitude}',
+                  );
+
+                  debugPrint(
+                    'Longitude: '
+                        '${selectedCenter!.longitude}',
+                  );
+
+                  debugPrint(
+                    'Raio: '
+                        '$radiusKm km',
+                  );
+
+                  Navigator
+                      .pushReplacementNamed(
+                    context,
+                    '/homePro',
+                  );
+                },
+
+                icon: const Icon(
+                  Icons.check,
+                ),
+
+                label: const Text(
+                  'Salvar área de atuação',
+                ),
+              ),
             ),
           ),
         ],

@@ -1,61 +1,185 @@
 import 'dart:convert';
 import 'dart:math';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+
 import 'package:http/http.dart' as http;
+import 'package:latlong2/latlong.dart';
+
 import '../models/gym.dart';
 
 class PlacesService {
+  static const String _overpassUrl =
+      'https://overpass-api.de/api/interpreter';
 
-  static final apiKey = dotenv.env['PLACES_KEY'];
+  static const String _osrmUrl =
+      'https://router.project-osrm.org';
 
-  /// Buscar academias próximas
+  /// =========================================================
+  /// BUSCAR ACADEMIAS PRÓXIMAS
+  /// =========================================================
+
   static Future<List<Gym>> searchGyms(
       double lat,
-      double lng,
-      ) async {
+      double lng, {
+        int radius = 5000,
+      }) async {
+    final query = '''
+[out:json][timeout:25];
 
-    final url = Uri.parse(
-        "https://maps.googleapis.com/maps/api/place/nearbysearch/json"
-            "?location=$lat,$lng"
-            "&radius=5000"
-            "&type=gym"
-            "&keyword=academia"
-            "&key=$apiKey"
+(
+  node["leisure"="fitness_centre"]
+    (around:$radius,$lat,$lng);
+
+  way["leisure"="fitness_centre"]
+    (around:$radius,$lat,$lng);
+
+  relation["leisure"="fitness_centre"]
+    (around:$radius,$lat,$lng);
+
+  node["amenity"="gym"]
+    (around:$radius,$lat,$lng);
+
+  way["amenity"="gym"]
+    (around:$radius,$lat,$lng);
+
+  relation["amenity"="gym"]
+    (around:$radius,$lat,$lng);
+);
+
+out center tags;
+''';
+
+    final response = await http.post(
+      Uri.parse(_overpassUrl),
+      headers: {
+        'User-Agent': 'NeoGym/1.0',
+      },
+      body: {
+        'data': query,
+      },
     );
 
-    final response = await http.get(url);
+    if (response.statusCode != 200) {
+      throw Exception(
+        'Erro ao buscar academias: ${response.statusCode}',
+      );
+    }
 
-    final data = jsonDecode(response.body);
+    final Map<String, dynamic> data =
+    jsonDecode(response.body);
 
-    final List gyms = data["results"];
+    final List<dynamic> elements =
+        data['elements'] ?? [];
 
-    return gyms.map((e) => Gym.fromMap(e)).toList();
+    final List<Gym> gyms = [];
+
+    for (final element in elements) {
+      final tags =
+      Map<String, dynamic>.from(element['tags'] ?? {});
+
+      double? gymLat;
+      double? gymLng;
+
+      /*
+       * NODE
+       *
+       * node possui diretamente:
+       *
+       * lat
+       * lon
+       */
+      if (element['lat'] != null &&
+          element['lon'] != null) {
+        gymLat = (element['lat'] as num).toDouble();
+        gymLng = (element['lon'] as num).toDouble();
+      }
+
+      /*
+       * WAY / RELATION
+       *
+       * Como usamos:
+       *
+       * out center tags;
+       *
+       * o Overpass devolve:
+       *
+       * center: {
+       *   lat: ...
+       *   lon: ...
+       * }
+       */
+      else if (element['center'] != null) {
+        final center =
+        Map<String, dynamic>.from(element['center']);
+
+        if (center['lat'] != null &&
+            center['lon'] != null) {
+          gymLat = (center['lat'] as num).toDouble();
+          gymLng = (center['lon'] as num).toDouble();
+        }
+      }
+
+      if (gymLat == null || gymLng == null) {
+        continue;
+      }
+
+      String name = tags['name']?.toString().trim() ?? '';
+
+      if (name.isEmpty) {
+        name = 'Academia';
+      }
+
+      gyms.add(
+        Gym(
+          name: name,
+          lat: gymLat,
+          lng: gymLng,
+        ),
+      );
+    }
+
+    return gyms;
   }
 
-  /// Buscar academia por nome
+  /// =========================================================
+  /// BUSCAR ACADEMIA POR NOME
+  /// =========================================================
+  ///
+  /// Como já estamos buscando as academias próximas,
+  /// podemos filtrar localmente.
+  ///
+  /// Isso evita fazer outra consulta diferente no servidor.
+  /// =========================================================
+
   static Future<List<Gym>> searchGymByName(
       String query,
       double lat,
-      double lng,
-      ) async {
-
-    final url = Uri.parse(
-        "https://maps.googleapis.com/maps/api/place/textsearch/json"
-            "?query=$query+gym"
-            "&location=$lat,$lng"
-            "&radius=5000"
-            "&key=$apiKey"
+      double lng, {
+        int radius = 5000,
+      }) async {
+    final gyms = await searchGyms(
+      lat,
+      lng,
+      radius: radius,
     );
 
-    final response = await http.get(url);
+    final search = query
+        .trim()
+        .toLowerCase();
 
-    final data = jsonDecode(response.body);
+    if (search.isEmpty) {
+      return gyms;
+    }
 
-    final List gyms = data["results"];
-
-    return gyms.map((e) => Gym.fromMap(e)).toList();
+    return gyms.where((gym) {
+      return gym.name
+          .toLowerCase()
+          .contains(search);
+    }).toList();
   }
+
+  /// =========================================================
+  /// TRAÇAR ROTA
+  /// =========================================================
 
   static Future<List<LatLng>> getRouteCoordinates(
       double originLat,
@@ -63,56 +187,57 @@ class PlacesService {
       double destLat,
       double destLng,
       ) async {
-    final url =
-        "https://maps.googleapis.com/maps/api/directions/json?"
-        "origin=$originLat,$originLng&destination=$destLat,$destLng"
-        "&key=$apiKey";
+    final url = Uri.parse(
+      '$_osrmUrl/route/v1/driving/'
+          '$originLng,$originLat;'
+          '$destLng,$destLat'
+          '?overview=full'
+          '&geometries=geojson'
+          '&steps=false',
+    );
 
-    final response = await http.get(Uri.parse(url));
-    final data = json.decode(response.body);
+    final response = await http.get(url);
 
-    if (data["routes"].isEmpty) return [];
-
-    final points = data["routes"][0]["overview_polyline"]["points"];
-
-    return _decodePolyline(points);
-  }
-
-  static List<LatLng> _decodePolyline(String encoded) {
-    List<LatLng> polyline = [];
-
-    int index = 0, len = encoded.length;
-    int lat = 0, lng = 0;
-
-    while (index < len) {
-      int b, shift = 0, result = 0;
-
-      do {
-        b = encoded.codeUnitAt(index++) - 63;
-        result |= (b & 0x1f) << shift;
-        shift += 5;
-      } while (b >= 0x20);
-
-      int dlat = (result & 1) != 0 ? ~(result >> 1) : (result >> 1);
-      lat += dlat;
-
-      shift = 0;
-      result = 0;
-
-      do {
-        b = encoded.codeUnitAt(index++) - 63;
-        result |= (b & 0x1f) << shift;
-        shift += 5;
-      } while (b >= 0x20);
-
-      int dlng = (result & 1) != 0 ? ~(result >> 1) : (result >> 1);
-      lng += dlng;
-
-      polyline.add(LatLng(lat / 1E5, lng / 1E5));
+    if (response.statusCode != 200) {
+      return [];
     }
 
-    return polyline;
+    final data = jsonDecode(response.body);
+
+    if (data['code'] != 'Ok') {
+      return [];
+    }
+
+    final routes = data['routes'] as List<dynamic>;
+
+    if (routes.isEmpty) {
+      return [];
+    }
+
+    final coordinates =
+    routes[0]['geometry']['coordinates']
+    as List<dynamic>;
+
+    return coordinates.map((coordinate) {
+      /*
+       * OSRM/GeoJSON:
+       *
+       * [longitude, latitude]
+       *
+       * LatLng:
+       *
+       * LatLng(latitude, longitude)
+       */
+      return LatLng(
+        (coordinate[1] as num).toDouble(),
+        (coordinate[0] as num).toDouble(),
+      );
+    }).toList();
   }
+
+  /// =========================================================
+  /// INFORMAÇÕES DA ROTA
+  /// =========================================================
 
   static Future<Map<String, dynamic>> getRouteInfo(
       double originLat,
@@ -120,27 +245,78 @@ class PlacesService {
       double destLat,
       double destLng,
       ) async {
-    final url =
-    "https://maps.googleapis.com/maps/api/directions/json?"
-    "origin=$originLat,$originLng"
-    "&destination=$destLat,$destLng"
-    "&mode=driving"
-    "&key=$apiKey";
+    final url = Uri.parse(
+      '$_osrmUrl/route/v1/driving/'
+          '$originLng,$originLat;'
+          '$destLng,$destLat'
+          '?overview=false'
+          '&steps=false',
+    );
 
-    final response = await http.get(Uri.parse(url));
-    final data = json.decode(response.body);
+    final response = await http.get(url);
 
-    if (data["routes"].isEmpty) return {};
+    if (response.statusCode != 200) {
+      return {};
+    }
 
-    final leg = data["routes"][0]["legs"][0];
+    final data = jsonDecode(response.body);
 
+    if (data['code'] != 'Ok') {
+      return {};
+    }
+
+    final routes = data['routes'] as List<dynamic>;
+
+    if (routes.isEmpty) {
+      return {};
+    }
+
+    final route = routes[0];
+
+    final double distanceMeters =
+    (route['distance'] as num).toDouble();
+
+    final double durationSeconds =
+    (route['duration'] as num).toDouble();
 
     return {
-      "distance": leg["distance"]["text"],
-      "duration": leg["duration"]["text"],
+      'distance': _formatDistance(distanceMeters),
+      'duration': _formatDuration(durationSeconds),
+
+      // caso precise dos valores puros depois
+      'distanceMeters': distanceMeters,
+      'durationSeconds': durationSeconds,
     };
   }
 
+  static String _formatDistance(double meters) {
+    if (meters < 1000) {
+      return '${meters.round()} m';
+    }
+
+    return '${(meters / 1000).toStringAsFixed(1)} km';
+  }
+
+  static String _formatDuration(double seconds) {
+    final minutes = (seconds / 60).round();
+
+    if (minutes < 60) {
+      return '$minutes min';
+    }
+
+    final hours = minutes ~/ 60;
+    final remainingMinutes = minutes % 60;
+
+    if (remainingMinutes == 0) {
+      return '${hours}h';
+    }
+
+    return '${hours}h ${remainingMinutes}min';
+  }
+
+  /// =========================================================
+  /// DISTÂNCIA EM LINHA RETA
+  /// =========================================================
 
   static double calculateDistance(
       double lat1,
@@ -149,6 +325,7 @@ class PlacesService {
       double lon2,
       ) {
     const p = 0.017453292519943295;
+
     final a = 0.5 -
         (cos((lat2 - lat1) * p) / 2) +
         cos(lat1 * p) *
@@ -156,6 +333,6 @@ class PlacesService {
             (1 - cos((lon2 - lon1) * p)) /
             2;
 
-    return 12742 * asin(sqrt(a)); // distância em KM
+    return 12742 * asin(sqrt(a));
   }
 }

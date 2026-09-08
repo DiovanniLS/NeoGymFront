@@ -4,9 +4,10 @@ import '../storage/token_storage.dart';
 class ApiClient {
   static final Dio dio = Dio(
     BaseOptions(
-      baseUrl: 'https://neogym-production.up.railway.app/api/v1',
-      connectTimeout: const Duration(seconds: 10),
-      receiveTimeout: const Duration(seconds: 10),
+      baseUrl: 'http://192.168.20.75:8080/api/v1',
+      connectTimeout: const Duration(seconds: 15),
+      receiveTimeout: const Duration(seconds: 15),
+      sendTimeout: const Duration(seconds: 15),
       headers: {
         'Content-Type': 'application/json',
       },
@@ -23,7 +24,22 @@ class ApiClient {
             options.headers['Authorization'] = 'Bearer $token';
           }
 
+          print('REQUEST: ${options.method} ${options.uri}');
+
           handler.next(options);
+        },
+        onResponse: (response, handler) {
+          print('STATUS: ${response.statusCode}');
+          print('RESPONSE: ${response.data}');
+
+          handler.next(response);
+        },
+        onError: (error, handler) {
+          print('ERRO: ${error.response?.statusCode}');
+          print('URL: ${error.requestOptions.uri}');
+          print('RESPOSTA: ${error.response?.data}');
+
+          handler.next(error);
         },
       ),
     );
