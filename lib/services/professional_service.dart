@@ -1,49 +1,59 @@
+import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
+
 import '../models/professional.dart';
+import 'api_client.dart';
 
 class ProfessionalService {
+  final Dio dio = ApiClient.dio;
 
-  Future<List<Professional>>
-  getProfessionals() async {
+  Future<List<Professional>> getProfessionals() async {
+    try {
+      const latitude = -23.561800;
+      const longitude = -46.653400;
 
-    await Future.delayed(
-      const Duration(seconds: 1),
-    );
+      final response = await dio.get(
+        '/profissionais/proximos',
+        queryParameters: {
+          'latitude': latitude,
+          'longitude': longitude,
+          'raioKm': 10,
+          'pagina': 0,
+          'tamanho': 20,
+        },
+      );
 
-    return [
+      final List<dynamic> content = response.data['content'];
 
-      Professional.fromMap({
+      return content.map((item) {
+        final tipo = item['tipo'];
 
-        "id": "1",
+        return Professional.fromMap({
+          'id': item['id'].toString(),
+          'usuarioId': item['usuarioId'],
 
-        "name": "João Silva",
-
-        "specialty":
-        "Personal Trainer",
-
-        "rating": 4.8,
-
-        "distance": 2.3,
-
-        "image":
-        "https://i.pravatar.cc/150?img=3",
-
-        "online": true,
-
-        "type": "Personal",
-
-        "workplaces": [
-          {
-            "id": "1",
-            "name":
-            "Smart Fit Paulista",
-            "type": "Academia",
-            "lat": -23.5,
-            "lng": -46.6,
-            "address":
-            "Av. Paulista"
-          }
-        ]
-      }),
-    ];
+          'name': item['nome'],
+          'specialty': tipo == 'PERSONAL'
+              ? 'Personal Trainer'
+              : 'Nutricionista',
+          'rating': 0.0,
+          'distance': (item['distanciaKm'] ?? 0).toDouble(),
+          'image': '',
+          'online': false,
+          'type': tipo == 'PERSONAL'
+              ? 'Personal'
+              : 'Nutri',
+          'workplaces': [],
+        });
+      }).toList();
+    } on DioException catch (e) {
+      debugPrint('Erro ao buscar profissionais: ${e.message}');
+      debugPrint('Status: ${e.response?.statusCode}');
+      debugPrint('Resposta: ${e.response?.data}');
+      rethrow;
+    } catch (e) {
+      debugPrint('Erro ao buscar localização: $e');
+      rethrow;
+    }
   }
 }

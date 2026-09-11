@@ -6,6 +6,8 @@ import 'package:neogym/Resources/neo_gym_colors.dart';
 import 'package:neogym/Views/messages_screen.dart';
 import 'package:neogym/Views/configuracoes.dart';
 import 'package:neogym/Views/profissionais.dart';
+import 'package:neogym/services/api_client.dart';
+import 'package:neogym/services/professional_service.dart';
 import 'package:neogym/view_model/AuthViewModel.dart';
 import 'package:neogym/view_model/chat_viewmodel.dart';
 import 'package:neogym/view_model/professional_viewmodel.dart';
@@ -29,22 +31,29 @@ Future<void> main() async {
 
   await dotenv.load(fileName: ".env");
 
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
   await initAuth();
+
+  ApiClient.setup();
 
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => ChatViewModel()),
         ChangeNotifierProvider(create: (_) => AuthViewModel()),
-        ChangeNotifierProvider(create: (_) => ProfessionalViewModel()),
+        ChangeNotifierProvider(
+          create: (_) => ProfessionalViewModel(
+            ProfessionalService(),
+          ),
+        ),
       ],
-
       child: const MyApp(),
     ),
   );
 }
-
 Future<void> initAuth() async {
   final auth = FirebaseAuth.instance;
 

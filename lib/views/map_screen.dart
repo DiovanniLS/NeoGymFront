@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:provider/provider.dart';
 
 import '../Resources/neo_gym_colors.dart';
 import '../models/gym.dart';
-import '../models/professional.dart';
 import '../services/location_service.dart';
 import '../services/places_service.dart';
+import '../view_model/professional_viewmodel.dart';
 
 enum MapMode {
   gyms,
@@ -396,130 +397,68 @@ class _MapScreenState extends State<MapScreen> {
       return;
     }
 
-    final List<Marker> profMarkers = [
-      _buildUserMarker(
-        userLocation!,
-      ),
-    ];
+    try {
+      setState(() {
+        loading = true;
 
-    final List<CircleMarker>
-    profCircles = [];
+        polylines = [];
+        circles = [];
 
-    for (final prof in professionals) {
-      final double lat =
-      (prof['lat'] as num).toDouble();
+        distance = null;
+        duration = null;
+      });
 
-      final double lng =
-      (prof['lng'] as num).toDouble();
+      final viewModel =
+      context.read<ProfessionalViewModel>();
 
-      final double radiusKm =
-      ((prof['radiusKm'] ?? 2) as num)
-          .toDouble();
+      await viewModel.loadProfessionals();
 
-      final String id =
-      prof['id'].toString();
+      final professionals =
+          viewModel.professionals;
 
-      final position =
-      LatLng(lat, lng);
+      final List<Marker> profMarkers = [
+        _buildUserMarker(userLocation!),
+      ];
 
-      // =============================
-      // MARKER PROFISSIONAL
-      // =============================
+      for (final prof in professionals) {
+        // Neste momento o backend ainda não
+        // retorna latitude/longitude do profissional.
+        //
+        // Então não conseguimos colocar o
+        // marcador dele no mapa ainda.
+        //
+        // A distância continua disponível:
+        // prof.distance
+      }
 
-      profMarkers.add(
-        Marker(
-          point: position,
+      if (!mounted) return;
 
-          width: 50,
-          height: 50,
+      setState(() {
+        markers = profMarkers;
 
-          child: GestureDetector(
-            onTap: () {
-              debugPrint(
-                'Profissional: $id',
-              );
+        circles = [];
 
-              // Depois podemos abrir
-              // o perfil do profissional.
-            },
+        polylines = [];
 
-            child: Container(
-              decoration: BoxDecoration(
-                color:
-                NeoGymColors.primary,
-                shape: BoxShape.circle,
+        selectedGym = null;
+        gymLocation = null;
 
-                border: Border.all(
-                  color: Colors.white,
-                  width: 3,
-                ),
+        distance = null;
+        duration = null;
 
-                boxShadow: const [
-                  BoxShadow(
-                    color:
-                    Colors.black26,
-                    blurRadius: 6,
-                  ),
-                ],
-              ),
-
-              child: const Icon(
-                Icons.person_outline,
-                color: Colors.white,
-              ),
-            ),
-          ),
-        ),
+        loading = false;
+      });
+    } catch (e) {
+      debugPrint(
+        'Erro ao carregar profissionais: $e',
       );
 
-      // =============================
-      // RAIO DE ATUAÇÃO
-      // =============================
+      if (!mounted) return;
 
-      profCircles.add(
-        CircleMarker(
-          point: position,
-
-          /*
-           * Como estamos colocando:
-           *
-           * useRadiusInMeter: true
-           *
-           * radius passa a ser metros.
-           */
-          radius:
-          radiusKm * 1000,
-
-          useRadiusInMeter: true,
-
-          color:
-          Colors.blue.withOpacity(
-            0.15,
-          ),
-
-          borderColor:
-          Colors.blue,
-
-          borderStrokeWidth: 2,
-        ),
-      );
+      setState(() {
+        loading = false;
+      });
     }
-
-    if (!mounted) return;
-
-    setState(() {
-      markers = profMarkers;
-
-      circles = profCircles;
-
-      polylines = [];
-
-      selectedGym = null;
-      gymLocation = null;
-
-      distance = null;
-      duration = null;
-    });
   }
 
   // ==========================================================

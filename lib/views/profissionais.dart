@@ -21,13 +21,24 @@ class _ProfissionaisState extends State<Profissionais> {
   String searchText = "";
 
   @override
+  void initState() {
+    super.initState();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<ProfessionalViewModel>().loadProfessionals();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final professionalsList = context.watch<ProfessionalViewModel>().professionals;
+    final viewModel = context.watch<ProfessionalViewModel>();
+    final professionalsList = viewModel.professionals;
 
     final filteredList = professionalsList.where((p) {
-      final matchFilter = selectedFilter == "Todos" || p.type == selectedFilter;
+      final matchFilter =
+          selectedFilter == "Todos" || p.type == selectedFilter;
 
-      final matchSearch = p.name!.toLowerCase().contains(
+      final matchSearch = p.name.toLowerCase().contains(
         searchText.toLowerCase(),
       );
 
@@ -49,7 +60,11 @@ class _ProfissionaisState extends State<Profissionais> {
               const SizedBox(height: 20),
 
               Expanded(
-                child: ListView.builder(
+                child: viewModel.isLoading
+                    ? const Center(
+                  child: CircularProgressIndicator(),
+                )
+                    : ListView.builder(
                   itemCount: filteredList.length,
                   itemBuilder: (context, index) {
                     final prof = filteredList[index];
