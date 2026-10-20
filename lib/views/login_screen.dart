@@ -8,7 +8,7 @@ import 'package:neogym/services/auth_service.dart';
 import 'package:provider/provider.dart';
 
 import '../models/user_model.dart';
-import '../view_model/AuthViewModel.dart';
+import '../view_model/auth_view_model.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -66,6 +66,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
 
       final user = UserModel(
+        usuarioId: loginResponse.usuarioId,
         nome: loginResponse.nome,
         email: loginResponse.email,
         tipo: loginResponse.tipo,

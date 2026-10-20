@@ -11,14 +11,12 @@ class AITraining {
     required this.exercises,
   });
 
-  factory AITraining.fromJson(
-      Map<String, dynamic> json,
-      ) {
+  factory AITraining.fromJson(Map<String, dynamic> json) {
     return AITraining(
-      name: json['name'] ?? '',
-      objective: json['objective'] ?? '',
-      duration: json['duration'] ?? 0,
-      exercises: (json['exercises'] as List?)
+      name: json['nome'] ?? '',
+      objective: json['objetivo'] ?? '',
+      duration: (json['duracao'] as num?)?.toInt() ?? 0,
+      exercises: (json['exercicios'] as List?)
           ?.map(
             (e) => AIExercise.fromJson(e),
       )
@@ -39,13 +37,11 @@ class AIExercise {
     required this.repetitions,
   });
 
-  factory AIExercise.fromJson(
-      Map<String, dynamic> json,
-      ) {
+  factory AIExercise.fromJson(Map<String, dynamic> json) {
     return AIExercise(
-      name: json['name'] ?? '',
-      sets: json['sets'] ?? 0,
-      repetitions: json['repetitions'] ?? 0,
+      name: json['nome'] ?? '',
+      sets: (json['series'] as num?)?.toInt() ?? 0,
+      repetitions: (json['repeticoes'] as num?)?.toInt() ?? 0,
     );
   }
 

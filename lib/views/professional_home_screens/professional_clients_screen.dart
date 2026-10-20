@@ -4,6 +4,8 @@ import 'package:neogym/Resources/neo_gym_colors.dart';
 import 'package:neogym/components/universal_app_bar.dart';
 
 import '../../models/client_status.dart';
+import '../../models/professional_client.dart';
+import '../../services/vinculo_service.dart';
 import 'client_details_screen.dart';
 
 class ProfessionalClientsScreen extends StatefulWidget {
@@ -20,36 +22,41 @@ class _ProfessionalClientsScreenState
   final TextEditingController searchController =
   TextEditingController();
 
-  final List<ProfessionalClient> clients = [
-    ProfessionalClient(
-      id: 1,
-      name: "Lucas Almeida",
-      email: "lucas@email.com",
-      status: ClientStatus.active,
-      lastActivity: "Treino realizado hoje",
-    ),
-    ProfessionalClient(
-      id: 2,
-      name: "Ana Souza",
-      email: "ana@email.com",
-      status: ClientStatus.active,
-      lastActivity: "Atendimento às 15:00",
-    ),
-    ProfessionalClient(
-      id: 3,
-      name: "Marcos Silva",
-      email: "marcos@email.com",
-      status: ClientStatus.pending,
-      lastActivity: "Aguardando aprovação",
-    ),
-    ProfessionalClient(
-      id: 4,
-      name: "Juliana Santos",
-      email: "juliana@email.com",
-      status: ClientStatus.active,
-      lastActivity: "Último treino há 2 dias",
-    ),
-  ];
+  final VinculoService _vinculoService = VinculoService();
+
+  List<ProfessionalClient> clients = [];
+
+  bool _loading = true;
+  String? _error;
+
+
+
+  @override
+  void initState() {
+    super.initState();
+    _carregarClientes();
+  }
+
+  Future<void> _carregarClientes() async {
+    try {
+      final resultado =
+      await _vinculoService.buscarAlunosVinculados();
+
+      if (!mounted) return;
+
+      setState(() {
+        clients = resultado;
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _loading = false;
+        _error = 'Não foi possível carregar os clientes.';
+      });
+    }
+  }
 
   String search = "";
 
@@ -90,6 +97,59 @@ class _ProfessionalClientsScreenState
     super.dispose();
   }
 
+  Widget _buildErrorState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(30),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.cloud_off_outlined,
+              size: 65,
+              color: Colors.grey.shade400,
+            ),
+
+            const SizedBox(height: 16),
+
+            const Text(
+              'Não foi possível carregar os clientes',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+
+            const SizedBox(height: 8),
+
+            const Text(
+              'Verifique sua conexão e tente novamente.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.grey,
+              ),
+            ),
+
+            const SizedBox(height: 18),
+
+            ElevatedButton(
+              onPressed: () {
+                setState(() {
+                  _loading = true;
+                  _error = null;
+                });
+
+                _carregarClientes();
+              },
+              child: const Text('Tentar novamente'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -106,7 +166,13 @@ class _ProfessionalClientsScreenState
             _buildSearch(),
 
             Expanded(
-              child: filteredClients.isEmpty
+              child: _loading
+                  ? const Center(
+                child: CircularProgressIndicator(),
+              )
+                  : _error != null
+                  ? _buildErrorState()
+                  : filteredClients.isEmpty
                   ? _buildEmptyState()
                   : ListView.separated(
                 padding: const EdgeInsets.fromLTRB(
@@ -115,25 +181,16 @@ class _ProfessionalClientsScreenState
                   16,
                   20,
                 ),
-                itemCount:
-                filteredClients.length,
+                itemCount: filteredClients.length,
                 separatorBuilder: (_, __) =>
-                const SizedBox(
-                  height: 10,
-                ),
-                itemBuilder: (
-                    context,
-                    index,
-                    ) {
-                  final client =
-                  filteredClients[index];
+                const SizedBox(height: 10),
+                itemBuilder: (context, index) {
+                  final client = filteredClients[index];
 
-                  return _buildClientCard(
-                    client,
-                  );
+                  return _buildClientCard(client);
                 },
               ),
-            ),
+            )
           ],
         ),
       ),
@@ -183,29 +240,22 @@ class _ProfessionalClientsScreenState
   }) {
     return Container(
       padding: const EdgeInsets.all(16),
-
       decoration: BoxDecoration(
-        color: color.withOpacity(0.08),
-
+        color: color.withOpacity(0.10),
         borderRadius: BorderRadius.circular(16),
-
         border: Border.all(
-          color: color.withOpacity(0.2),
+          color: color.withOpacity(0.30),
         ),
       ),
-
       child: Row(
         children: [
-
           Container(
             width: 42,
             height: 42,
-
             decoration: BoxDecoration(
-              color: color.withOpacity(0.15),
+              color: color.withOpacity(0.18),
               shape: BoxShape.circle,
             ),
-
             child: Icon(
               icon,
               color: color,
@@ -215,10 +265,8 @@ class _ProfessionalClientsScreenState
           const SizedBox(width: 12),
 
           Column(
-            crossAxisAlignment:
-            CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-
               Text(
                 value,
                 style: const TextStyle(
@@ -229,9 +277,10 @@ class _ProfessionalClientsScreenState
 
               Text(
                 title,
-                style: const TextStyle(
-                  color: Colors.grey,
+                style: TextStyle(
+                  color: Colors.grey.shade700,
                   fontSize: 13,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ],
@@ -261,8 +310,10 @@ class _ProfessionalClientsScreenState
         decoration: InputDecoration(
           hintText: "Buscar cliente...",
 
-          prefixIcon:
-          const Icon(Icons.search),
+          prefixIcon: Icon(
+            Icons.search,
+            color: NeoGymColors.primary,
+          ),
 
           suffixIcon:
           search.isNotEmpty
@@ -281,8 +332,7 @@ class _ProfessionalClientsScreenState
 
           filled: true,
 
-          fillColor:
-          Colors.grey.withOpacity(0.08),
+          fillColor: Colors.grey.shade100,
 
           border: OutlineInputBorder(
             borderRadius:
@@ -337,7 +387,7 @@ class _ProfessionalClientsScreenState
 
             border: Border.all(
               color:
-              Colors.grey.shade200,
+              Colors.grey.shade300,
             ),
           ),
 
@@ -349,7 +399,7 @@ class _ProfessionalClientsScreenState
 
                 backgroundColor:
                 NeoGymColors.primary
-                    .withOpacity(0.12),
+                    .withOpacity(0.14),
 
                 child: Text(
                   getInitials(
@@ -487,10 +537,11 @@ class _ProfessionalClientsScreenState
       ),
 
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-
-        borderRadius:
-        BorderRadius.circular(20),
+        color: color.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: color.withOpacity(0.25),
+        ),
       ),
 
       child: Text(

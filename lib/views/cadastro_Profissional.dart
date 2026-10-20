@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:neogym/components/cadastro_stepper.dart';
 import 'package:neogym/components/input_field.dart';
-import 'package:neogym/utils/phone_input_formatter.dart';
-import 'dart:io';
-import 'package:image_picker/image_picker.dart';
 
 import '../Resources/neo_gym_colors.dart';
 import '../services/auth_service.dart';

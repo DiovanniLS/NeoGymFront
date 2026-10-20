@@ -1,35 +1,29 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class MessageModel {
+  final String id;
   final String text;
-
   final String senderId;
-
   final String senderName;
-
   final String senderEmail;
+  final String? imageUrl;
 
-  final DateTime createdAt;
-
-  MessageModel({
+  const MessageModel({
+    this.id = '',
     required this.text,
-    required this.senderId,
+    this.senderId = '',
     required this.senderName,
     required this.senderEmail,
-    required this.createdAt,
+    this.imageUrl,
   });
 
   factory MessageModel.fromMap(Map<String, dynamic> map) {
     return MessageModel(
-      text: map['text'] ?? '',
-
-      senderId: map['senderId'] ?? '',
-
-      senderName: map['senderName'] ?? '',
-
-      senderEmail: map['senderEmail'] ?? '',
-
-      createdAt: (map['timestamp'] as Timestamp).toDate(),
+      id: map['id'] as String? ?? '',
+      text: map['text'] as String? ?? '',
+      senderId: map['senderId'] as String? ?? '',
+      senderName: map['senderName'] as String? ?? 'Usuário',
+      senderEmail: map['senderEmail'] as String? ?? '',
+      imageUrl: map['imageUrl'] as String?,
     );
   }
 }

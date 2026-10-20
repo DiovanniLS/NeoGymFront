@@ -5,9 +5,10 @@ import 'package:provider/provider.dart';
 
 import '../Resources/neo_gym_colors.dart';
 import '../models/gym.dart';
+import '../models/professional.dart';
 import '../services/location_service.dart';
 import '../services/places_service.dart';
-import '../view_model/professional_viewmodel.dart';
+import '../view_model/professional_view_model.dart';
 
 enum MapMode {
   gyms,
@@ -31,6 +32,8 @@ class _MapScreenState extends State<MapScreen> {
 
   MapMode currentMode = MapMode.gyms;
 
+  String? locationError;
+  List<Professional> nearbyProfessionals = [];
   LatLng? userLocation;
   LatLng? gymLocation;
 
@@ -69,60 +72,60 @@ class _MapScreenState extends State<MapScreen> {
   // ==========================================================
 
   Future<void> initMap() async {
+    if (mounted) {
+      setState(() {
+        locationError = null;
+        loading = true;
+      });
+    }
+
     try {
-      final pos =
-      await LocationService.getUserLocation();
+      final pos = await LocationService.getUserLocation();
 
       final location = LatLng(
         pos.latitude,
         pos.longitude,
       );
 
-      Gym? initialGym = widget.gym;
+      final initialGym = widget.gym;
 
-      LatLng? initialGymLocation;
-
-      if (initialGym != null) {
-        initialGymLocation = LatLng(
-          initialGym.lat,
-          initialGym.lng,
-        );
-      }
+      final LatLng? initialGymLocation = initialGym == null
+          ? null
+          : LatLng(initialGym.lat, initialGym.lng);
 
       if (!mounted) return;
 
       setState(() {
         userLocation = location;
-
         selectedGym = initialGym;
-
         gymLocation = initialGymLocation;
+        loading = false;
 
         markers = [
           _buildUserMarker(location),
-
-          if (initialGym != null)
-            _buildGymMarker(initialGym),
+          if (initialGym != null) _buildGymMarker(initialGym),
         ];
       });
 
-      /*
-       * Se o mapa já tiver terminado de carregar,
-       * podemos carregar a rota imediatamente.
-       *
-       * Normalmente quem dispara isso será o
-       * onMapReady.
-       */
-      if (mapReady &&
-          gymLocation != null) {
+      if (initialGym == null) {
+        // A tela já começa carregando as academias próximas.
+        await loadGymMode();
+      } else if (mapReady) {
         await loadRoute();
-
         _fitCamera();
       }
-    } catch (e) {
-      debugPrint(
-        'Erro ao iniciar mapa: $e',
-      );
+    } catch (e, stackTrace) {
+      debugPrint('Erro ao iniciar mapa: $e');
+      debugPrintStack(stackTrace: stackTrace);
+
+      if (!mounted) return;
+
+      setState(() {
+        loading = false;
+        locationError =
+        'Não foi possível obter sua localização. '
+            'Verifique a permissão e tente novamente.';
+      });
     }
   }
 
@@ -332,33 +335,37 @@ class _MapScreenState extends State<MapScreen> {
   // ==========================================================
 
   Future<void> loadGymMode() async {
-    if (userLocation == null) {
-      return;
-    }
+    if (userLocation == null) return;
+
+    setState(() {
+      loading = true;
+
+      selectedGym = null;
+      gymLocation = null;
+
+      polylines = [];
+      circles = [];
+
+      distance = null;
+      duration = null;
+
+      nearbyProfessionals = [];
+
+      markers = [
+        _buildUserMarker(userLocation!),
+      ];
+    });
 
     try {
-      setState(() {
-        loading = true;
-
-        polylines = [];
-        circles = [];
-
-        distance = null;
-        duration = null;
-      });
-
-      final gyms =
-      await PlacesService.searchGyms(
+      final gyms = await PlacesService.searchGyms(
         userLocation!.latitude,
         userLocation!.longitude,
       );
 
       if (!mounted) return;
 
-      final List<Marker> gymMarkers = [
-        _buildUserMarker(
-          userLocation!,
-        ),
+      final gymMarkers = <Marker>[
+        _buildUserMarker(userLocation!),
       ];
 
       for (final gym in gyms) {
@@ -372,19 +379,22 @@ class _MapScreenState extends State<MapScreen> {
 
       setState(() {
         markers = gymMarkers;
-
         loading = false;
       });
     } catch (e) {
-      debugPrint(
-        'Erro ao carregar academias: $e',
-      );
+      debugPrint('Erro ao carregar academias: $e');
 
       if (!mounted) return;
 
       setState(() {
         loading = false;
       });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Não foi possível carregar as academias.'),
+        ),
+      );
     }
   }
 
@@ -393,71 +403,58 @@ class _MapScreenState extends State<MapScreen> {
   // ==========================================================
 
   Future<void> loadProfessionalMode() async {
-    if (userLocation == null) {
-      return;
-    }
+    if (userLocation == null) return;
 
-    try {
-      setState(() {
-        loading = true;
+    setState(() {
+      loading = true;
 
-        polylines = [];
-        circles = [];
+      selectedGym = null;
+      gymLocation = null;
 
-        distance = null;
-        duration = null;
-      });
+      polylines = [];
+      circles = [];
 
-      final viewModel =
-      context.read<ProfessionalViewModel>();
+      distance = null;
+      duration = null;
 
-      await viewModel.loadProfessionals();
+      nearbyProfessionals = [];
 
-      final professionals =
-          viewModel.professionals;
-
-      final List<Marker> profMarkers = [
+      markers = [
         _buildUserMarker(userLocation!),
       ];
+    });
 
-      for (final prof in professionals) {
-        // Neste momento o backend ainda não
-        // retorna latitude/longitude do profissional.
-        //
-        // Então não conseguimos colocar o
-        // marcador dele no mapa ainda.
-        //
-        // A distância continua disponível:
-        // prof.distance
-      }
+    try {
+      final viewModel = context.read<ProfessionalViewModel>();
+
+      await viewModel.loadProfessionals();
 
       if (!mounted) return;
 
       setState(() {
-        markers = profMarkers;
+        nearbyProfessionals = [...viewModel.professionals]
+          ..sort((a, b) => a.distance.compareTo(b.distance));
 
-        circles = [];
-
-        polylines = [];
-
-        selectedGym = null;
-        gymLocation = null;
-
-        distance = null;
-        duration = null;
+        markers = [
+          _buildUserMarker(userLocation!),
+        ];
 
         loading = false;
       });
     } catch (e) {
-      debugPrint(
-        'Erro ao carregar profissionais: $e',
-      );
+      debugPrint('Erro ao carregar profissionais: $e');
 
       if (!mounted) return;
 
       setState(() {
         loading = false;
       });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Não foi possível carregar os profissionais.'),
+        ),
+      );
     }
   }
 
@@ -465,38 +462,44 @@ class _MapScreenState extends State<MapScreen> {
   // BUSCAR ACADEMIA
   // ==========================================================
 
-  Future<void> searchGym(
-      String value,
-      ) async {
-    if (userLocation == null) {
+  Future<void> searchGym(String value) async {
+    if (userLocation == null) return;
+
+    final query = value.trim();
+
+    if (query.isEmpty) {
+      await loadGymMode();
       return;
     }
 
+    setState(() {
+      loading = true;
+
+      selectedGym = null;
+      gymLocation = null;
+
+      polylines = [];
+      circles = [];
+
+      distance = null;
+      duration = null;
+
+      markers = [
+        _buildUserMarker(userLocation!),
+      ];
+    });
+
     try {
-      setState(() {
-        loading = true;
-
-        polylines = [];
-
-        distance = null;
-        duration = null;
-      });
-
-      final gyms =
-      await PlacesService
-          .searchGymByName(
-        value,
+      final gyms = await PlacesService.searchGymByName(
+        query,
         userLocation!.latitude,
         userLocation!.longitude,
       );
 
       if (!mounted) return;
 
-      final List<Marker>
-      gymMarkers = [
-        _buildUserMarker(
-          userLocation!,
-        ),
+      final gymMarkers = <Marker>[
+        _buildUserMarker(userLocation!),
       ];
 
       for (final gym in gyms) {
@@ -510,36 +513,129 @@ class _MapScreenState extends State<MapScreen> {
 
       setState(() {
         markers = gymMarkers;
-
-        circles = [];
-
         loading = false;
       });
 
-      // Centraliza na primeira academia
-      // encontrada.
-      if (gyms.isNotEmpty &&
-          mapReady) {
+      if (gyms.isNotEmpty && mapReady) {
         mapController.move(
-          LatLng(
-            gyms.first.lat,
-            gyms.first.lng,
-          ),
+          LatLng(gyms.first.lat, gyms.first.lng),
           14,
+        );
+      } else if (gyms.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Nenhuma academia encontrada.'),
+          ),
         );
       }
     } catch (e) {
-      debugPrint(
-        'Erro na pesquisa: $e',
-      );
+      debugPrint('Erro na pesquisa: $e');
 
       if (!mounted) return;
 
       setState(() {
         loading = false;
       });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Erro ao pesquisar academias.'),
+        ),
+      );
     }
   }
+
+
+  // ==========================================================
+  // card profissional
+  // ==========================================================
+
+  Widget buildProfessionalBottomCard() {
+    return Positioned(
+      bottom: 24,
+      left: 16,
+      right: 16,
+      child: Card(
+        elevation: 10,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Row(
+                children: [
+                  Icon(Icons.people_alt_outlined),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Profissionais próximos',
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                'A localização exata dos profissionais '
+                    'ainda não está disponível no mapa.',
+                style: TextStyle(
+                  color: Colors.grey,
+                  fontSize: 12,
+                ),
+              ),
+              const SizedBox(height: 8),
+              if (nearbyProfessionals.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 12),
+                  child: Text(
+                    'Nenhum profissional encontrado próximo de você.',
+                  ),
+                )
+              else
+                ...nearbyProfessionals.take(3).map(
+                      (prof) => ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    dense: true,
+                    leading: const CircleAvatar(
+                      child: Icon(Icons.fitness_center),
+                    ),
+                    title: Text(
+                      prof.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    subtitle: Text(
+                      prof.specialty.isEmpty
+                          ? 'Profissional'
+                          : prof.specialty,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    trailing: Text(
+                      '${prof.distance.toStringAsFixed(1)} km',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ==========================================================
+  //
+  // ==========================================================
 
   // ==========================================================
   // BUILD
@@ -548,10 +644,38 @@ class _MapScreenState extends State<MapScreen> {
   @override
   Widget build(BuildContext context) {
     if (userLocation == null) {
-      return const Scaffold(
+      return Scaffold(
         body: Center(
-          child:
-          CircularProgressIndicator(),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (locationError == null) ...[
+                  const CircularProgressIndicator(),
+                  const SizedBox(height: 16),
+                  const Text('Obtendo sua localização...'),
+                ] else ...[
+                  const Icon(
+                    Icons.location_off,
+                    size: 48,
+                    color: Colors.grey,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    locationError!,
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton.icon(
+                    onPressed: initMap,
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Tentar novamente'),
+                  ),
+                ],
+              ],
+            ),
+          ),
         ),
       );
     }
@@ -760,6 +884,13 @@ class _MapScreenState extends State<MapScreen> {
           if (currentMode ==
               MapMode.gyms)
             buildBottomCard(),
+
+          // ==========================================
+          // card profissionais
+          // ==========================================
+
+          if (currentMode == MapMode.professionals)
+            buildProfessionalBottomCard(),
         ],
       ),
     );
@@ -969,19 +1100,11 @@ class _MapScreenState extends State<MapScreen> {
                   ),
 
                   SizedBox(
-                    width:
-                    double.infinity,
-
-                    child:
-                    ElevatedButton(
-                      onPressed: () {
-                        // iniciar treino
-                      },
-
-                      child:
-                      const Text(
-                        'Iniciar treino',
-                      ),
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: _fitCamera,
+                      icon: const Icon(Icons.directions),
+                      label: const Text('Centralizar rota'),
                     ),
                   ),
                 ],

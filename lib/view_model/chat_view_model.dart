@@ -1,4 +1,6 @@
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../models/message_model.dart';
 import '../services/chat_service.dart';
@@ -14,14 +16,35 @@ class ChatViewModel extends ChangeNotifier {
     required String chatId,
     required String message,
     required String senderName,
-    required String senderEmail
+    required String senderEmail,
+    String? imageUrl,
   }) async {
     await _service.sendMessage(
       chatId: chatId,
       message: message,
       senderName: senderName,
-      senderEmail: senderEmail
+      senderEmail: senderEmail,
+      imageUrl: imageUrl,
+    );
+  }
 
+  Future<String> uploadImage({
+    required String chatId,
+    required XFile image,
+  }) {
+    return _service.uploadImage(
+      chatId: chatId,
+      image: image,
+    );
+  }
+
+  Future<void> deleteMessage({
+    required String chatId,
+    required String messageId,
+  }) {
+    return _service.deleteMessage(
+      chatId: chatId,
+      messageId: messageId,
     );
   }
 }

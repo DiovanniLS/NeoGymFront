@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:neogym/Views/chat_screen.dart';
-import 'package:neogym/Views/perfil_profissonal.dart';
+import 'package:neogym/Views/professional_detail_screen.dart';
 import 'package:provider/provider.dart';
 
 import '../Resources/neo_gym_colors.dart';
 import '../components/card_profissional.dart';
-import '../view_model/professional_viewmodel.dart';
+import '../view_model/professional_view_model.dart';
 
 class Profissionais extends StatefulWidget {
   const Profissionais({super.key});

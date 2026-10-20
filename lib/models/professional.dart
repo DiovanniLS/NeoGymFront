@@ -14,6 +14,9 @@ class Professional {
   final double? lng;
   final double radiusKm;
   final List<Workplace> workplaces;
+  final String apresentacao;
+  final List<String> areasAtuacao;
+  final List<String> horariosDisponiveis;
 
   Professional({
     required this.id,
@@ -29,28 +32,106 @@ class Professional {
     this.lat,
     this.lng,
     this.radiusKm = 5,
+    this.apresentacao = '',
+    this.areasAtuacao = const [],
+    this.horariosDisponiveis = const [],
   });
 
   factory Professional.fromMap(Map<String, dynamic> map) {
     return Professional(
-      id: map["id"]?.toString() ?? "",
+      id: map['id']?.toString() ?? '',
+      usuarioId: _intValue(map['usuarioId']),
 
-      // NOVO
-      usuarioId: map["usuarioId"] ?? 0,
+      name: (map['name'] ?? map['nome'] ?? '').toString(),
 
-      name: map["name"] ?? "",
-      specialty: map["specialty"] ?? "",
-      rating: (map["rating"] ?? 0).toDouble(),
-      image: map["image"] ?? "",
-      distance: (map["distance"] ?? 0).toDouble(),
-      isOnline: map["online"] ?? false,
-      type: map["type"] ?? "Todos",
-      lat: map["lat"]?.toDouble(),
-      lng: map["lng"]?.toDouble(),
-      radiusKm: (map["radiusKm"] ?? 5).toDouble(),
-      workplaces: (map["workplaces"] as List<dynamic>? ?? [])
-          .map((workplace) => Workplace.fromMap(workplace))
+      specialty: (
+          map['specialty'] ??
+              map['especialidade'] ??
+              ''
+      ).toString(),
+
+      rating: _doubleValue(map['rating']),
+      image: (map['image'] ?? '').toString(),
+
+      distance: _doubleValue(
+        map['distance'] ?? map['distanciaKm'],
+      ),
+
+      isOnline: map['online'] == true ||
+          map['isOnline'] == true,
+
+      type: (
+          map['type'] ??
+              map['tipo'] ??
+              'Todos'
+      ).toString(),
+
+      lat: map['lat'] == null
+          ? null
+          : _doubleValue(map['lat']),
+
+      lng: map['lng'] == null
+          ? null
+          : _doubleValue(map['lng']),
+
+      radiusKm: _doubleValue(map['radiusKm'], fallback: 5),
+
+      workplaces: (map['workplaces'] as List<dynamic>? ?? [])
+          .map(
+            (workplace) => Workplace.fromMap(
+          Map<String, dynamic>.from(workplace),
+        ),
+      )
           .toList(),
+
+      apresentacao: (
+          map['apresentacao'] ?? ''
+      ).toString(),
+
+      areasAtuacao: _listaTexto(
+        map['areasAtuacao'],
+      ),
+
+      horariosDisponiveis: _listaTexto(
+        map['horariosDisponiveis'],
+      ),
     );
   }
+}
+
+int _intValue(dynamic value) {
+  if (value is num) return value.toInt();
+
+  return int.tryParse(value?.toString() ?? '') ?? 0;
+}
+
+double _doubleValue(
+    dynamic value, {
+      double fallback = 0,
+    }) {
+  if (value is num) return value.toDouble();
+
+  return double.tryParse(
+    value?.toString() ?? '',
+  ) ??
+      fallback;
+}
+
+List<String> _listaTexto(dynamic value) {
+  if (value is List) {
+    return value
+        .map((item) => item.toString().trim())
+        .where((item) => item.isNotEmpty)
+        .toList();
+  }
+
+  if (value is! String || value.trim().isEmpty) {
+    return [];
+  }
+
+  return value
+      .split(RegExp(r'[\n,;]'))
+      .map((item) => item.trim())
+      .where((item) => item.isNotEmpty)
+      .toList();
 }

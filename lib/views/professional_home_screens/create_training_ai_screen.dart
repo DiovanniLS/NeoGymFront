@@ -2,11 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:neogym/Resources/neo_gym_colors.dart';
 import 'package:neogym/components/universal_app_bar.dart';
 
-import '../../models/AITraining.dart';
+import '../../models/AI_training.dart';
+import '../../models/professional_client.dart';
+import '../../services/AIService.dart';
+import '../../services/api_client.dart';
+import '../../services/vinculo_service.dart';
+import '../../services/workout_service.dart';
 
 class CreateTrainingAIScreen extends StatefulWidget {
+  final ProfessionalClient student;
+
   const CreateTrainingAIScreen({
     super.key,
+    required this.student,
   });
 
   @override
@@ -17,12 +25,63 @@ class CreateTrainingAIScreen extends StatefulWidget {
 class _CreateTrainingAIScreenState
     extends State<CreateTrainingAIScreen> {
 
-  final List<String> students = [
-    "Lucas Almeida",
-    "Ana Souza",
-    "Marcos Silva",
-    "Juliana Santos",
-  ];
+
+  final VinculoService _vinculoService = VinculoService();
+  late final AIService _aiService;
+  late final WorkoutService _workoutService;
+
+  bool saving = false;
+
+  List<ProfessionalClient> students = [];
+
+  ProfessionalClient? selectedStudent;
+
+  bool loadingStudents = true;
+  String? studentsError;
+
+
+  @override
+  void initState() {
+    super.initState();
+
+    _aiService = AIService(ApiClient.dio);
+    _workoutService = WorkoutService(ApiClient.dio);
+
+    _loadStudents();
+  }
+
+  Future<void> _loadStudents() async {
+    try {
+      final result =
+      await _vinculoService.buscarAlunosVinculados();
+
+      if (!mounted) return;
+
+      ProfessionalClient? alunoSelecionado;
+
+      for (final student in result) {
+        if (student.id == widget.student.id) {
+          alunoSelecionado = student;
+          break;
+        }
+      }
+
+      setState(() {
+        students = result;
+        selectedStudent = alunoSelecionado;
+        loadingStudents = false;
+        studentsError = null;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        loadingStudents = false;
+        studentsError =
+        'Não foi possível carregar os alunos.';
+      });
+    }
+  }
 
   final List<String> objectives = [
     "Hipertrofia",
@@ -46,7 +105,6 @@ class _CreateTrainingAIScreenState
     120,
   ];
 
-  String? selectedStudent;
   String selectedObjective = "Hipertrofia";
   String selectedLevel = "Intermediário";
   int selectedDays = 4;
@@ -69,7 +127,7 @@ class _CreateTrainingAIScreenState
   Future<void> generateTraining() async {
     if (selectedStudent == null) {
       _showMessage(
-        "Selecione um aluno antes de continuar.",
+        'Selecione um aluno antes de gerar o treino.',
       );
       return;
     }
@@ -79,80 +137,100 @@ class _CreateTrainingAIScreenState
       showResult = false;
     });
 
-    // Simula a chamada para a API.
-    //
-    // Depois substituiremos este trecho por:
-    //
-    // final training =
-    //     await AIService().generateTraining(...);
+    try {
+      final training = await _aiService.gerarTreino(
+        alunoId: selectedStudent!.id,
+        objetivo: selectedObjective,
+        nivel: selectedLevel,
+        diasSemana: selectedDays,
+        duracaoMinutos: selectedDuration,
+        observacoes:
+        observationsController.text.trim().isEmpty
+            ? null
+            : observationsController.text.trim(),
+      );
 
-    await Future.delayed(
-      const Duration(seconds: 2),
-    );
+      if (!mounted) return;
 
-    final training = AITraining(
-      name: "Treino A — Peito e Tríceps",
-      objective: selectedObjective,
-      duration: selectedDuration,
-      exercises: [
-        AIExercise(
-          name: "Supino reto",
-          sets: 4,
-          repetitions: 10,
-        ),
-        AIExercise(
-          name: "Supino inclinado",
-          sets: 3,
-          repetitions: 10,
-        ),
-        AIExercise(
-          name: "Crucifixo",
-          sets: 3,
-          repetitions: 12,
-        ),
-        AIExercise(
-          name: "Tríceps pulley",
-          sets: 3,
-          repetitions: 12,
-        ),
-        AIExercise(
-          name: "Tríceps francês",
-          sets: 3,
-          repetitions: 10,
-        ),
-      ],
-    );
+      setState(() {
+        generatedTraining = training;
+        generating = false;
+        showResult = true;
+      });
+    } catch (e) {
+      if (!mounted) return;
 
-    if (!mounted) return;
+      setState(() {
+        generating = false;
+        showResult = false;
+      });
 
-    setState(() {
-      generatedTraining = training;
-      generating = false;
-      showResult = true;
-    });
+      _showMessage(
+        e.toString().replaceFirst(
+          'Exception: ',
+          '',
+        ),
+      );
+    }
   }
 
   void regenerateTraining() {
     generateTraining();
   }
 
-  void saveTraining() {
-    if (generatedTraining == null) return;
+  Future<void> saveTraining() async {
+    if (generatedTraining == null) {
+      return;
+    }
 
-    // Aqui futuramente:
-    //
-    // POST /api/treinos
-    //
-    // Depois que o profissional confirmar.
+    if (selectedStudent == null) {
+      _showMessage(
+        'Não foi possível identificar o aluno.',
+      );
+      return;
+    }
 
-    _showMessage(
-      "Treino salvo com sucesso! 💪",
-    );
+    if (saving) {
+      return;
+    }
 
-    Navigator.pop(
-      context,
-      generatedTraining,
-    );
+    setState(() {
+      saving = true;
+    });
+
+    try {
+      final workout =
+      await _workoutService.salvarTreinoComoFicha(
+        alunoId: selectedStudent!.id,
+        training: generatedTraining!,
+      );
+
+      if (!mounted) return;
+
+      _showMessage(
+        'Treino salvo na ficha do aluno! 💪',
+      );
+
+      Navigator.pop(
+        context,
+        workout,
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      _showMessage(
+        e.toString().replaceFirst(
+          'Exception: ',
+          '',
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          saving = false;
+        });
+      }
+    }
   }
 
   void editExercise(int index) {
@@ -371,24 +449,26 @@ class _CreateTrainingAIScreenState
 
           const SizedBox(height: 10),
 
-          DropdownButtonFormField<String>(
+          DropdownButtonFormField<ProfessionalClient>(
             value: selectedStudent,
 
-            decoration:
-            _inputDecoration(
-              label: "Selecione o aluno",
-              icon:
-              Icons.person_outline,
+            decoration: _inputDecoration(
+              label: loadingStudents
+                  ? "Carregando alunos..."
+                  : "Selecione o aluno",
+              icon: Icons.person_outline,
             ),
 
             items: students.map((student) {
-              return DropdownMenuItem(
+              return DropdownMenuItem<ProfessionalClient>(
                 value: student,
-                child: Text(student),
+                child: Text(student.name),
               );
             }).toList(),
 
-            onChanged: (value) {
+            onChanged: loadingStudents
+                ? null
+                : (value) {
               setState(() {
                 selectedStudent = value;
               });
@@ -775,8 +855,9 @@ class _CreateTrainingAIScreenState
             height: 54,
 
             child: ElevatedButton.icon(
-              onPressed:
-              saveTraining,
+              onPressed: saving
+                  ? null
+                  : saveTraining,
 
               icon: const Icon(
                 Icons.check,

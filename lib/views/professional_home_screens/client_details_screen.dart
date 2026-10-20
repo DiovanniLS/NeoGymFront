@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../../Resources/neo_gym_colors.dart';
 import '../../components/universal_app_bar.dart';
-import '../../models/client_status.dart';
+import '../../models/professional_client.dart';
+import '../../view_model/auth_view_model.dart';
+import '../chat_screen.dart';
+import 'client_agenda_screen.dart';
+import 'client_history_screen.dart';
+import 'client_training_history_screen.dart';
 import 'create_training_ai_screen.dart';
 
 class ClientDetailsScreen
@@ -83,29 +89,16 @@ class ClientDetailsScreen
 
             _buildOption(
               context,
-              icon:
-              Icons.calendar_month,
-              title:
-              "Agendamentos",
-              subtitle:
-              "Ver agenda do aluno",
-              onTap: () {},
-            ),
-
-            _buildOption(
-              context,
-              icon:
-              Icons.fitness_center,
-              title:
-              "Treinos",
-              subtitle:
-              "Visualizar treinos do aluno",
+              icon: Icons.calendar_month,
+              title: 'Agendamentos',
+              subtitle: 'Ver agenda do aluno',
               onTap: () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) =>
-                    const CreateTrainingAIScreen(),
+                    builder: (_) => ClientAgendaScreen(
+                      client: client,
+                    ),
                   ),
                 );
               },
@@ -113,13 +106,36 @@ class ClientDetailsScreen
 
             _buildOption(
               context,
-              icon:
-              Icons.history,
-              title:
-              "Histórico",
-              subtitle:
-              "Atividades realizadas",
-              onTap: () {},
+              icon: Icons.fitness_center,
+              title: 'Treinos',
+              subtitle: 'Visualizar fichas e criar novos treinos',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => ClientTrainingHistoryScreen(
+                      client: client,
+                    ),
+                  ),
+                );
+              },
+            ),
+
+            _buildOption(
+              context,
+              icon: Icons.history,
+              title: 'Histórico',
+              subtitle: 'Atendimentos concluídos e cancelados',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => ClientHistoryScreen(
+                      client: client,
+                    ),
+                  ),
+                );
+              },
             ),
 
             _buildOption(
@@ -131,9 +147,24 @@ class ClientDetailsScreen
               subtitle:
               "Conversar com o aluno",
               onTap: () {
-                Navigator.pushNamed(
+                final user = context.read<AuthViewModel>().user;
+
+                if (user == null) {
+                  return;
+                }
+
+                Navigator.push(
                   context,
-                  '/chat',
+                  MaterialPageRoute(
+                    builder: (_) => ChatScreen(
+                      name: client.name,
+                      Image: '',
+                      chatId: _gerarChatId(
+                        user.usuarioId,
+                        client.usuarioId,
+                      ),
+                    ),
+                  ),
                 );
               },
             ),
@@ -141,6 +172,16 @@ class ClientDetailsScreen
         ),
       ),
     );
+  }
+
+
+  String _gerarChatId(
+      int usuarioA,
+      int usuarioB,
+      ) {
+    final ids = [usuarioA, usuarioB]..sort();
+
+    return 'chat_${ids[0]}_${ids[1]}';
   }
 
   Widget _buildOption(

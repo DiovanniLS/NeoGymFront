@@ -1,5 +1,5 @@
 import 'package:dio/dio.dart';
-import '../models/AITraining.dart';
+import '../models/AI_training.dart';
 
 class AIService {
   final Dio _dio;

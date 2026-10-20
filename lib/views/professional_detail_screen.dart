@@ -1,6 +1,8 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:neogym/views/professional_home_screens/galeria_profissional_screen.dart';
 
+import '../Resources/neo_gym_colors.dart';
 import '../models/professional.dart';
 import '../services/vinculo_service.dart';
 
@@ -19,13 +21,19 @@ class ProfessionalDetailScreen extends StatefulWidget {
 
 class _ProfessionalDetailScreenState
     extends State<ProfessionalDetailScreen> {
+  final VinculoService _vinculoService = VinculoService();
 
+  bool _solicitando = false;
+  String? _statusVinculo;
+  bool _carregandoVinculo = true;
 
   @override
   void initState() {
     super.initState();
     _carregarStatusVinculo();
   }
+
+
 
   Future<void> _carregarStatusVinculo() async {
     try {
@@ -80,17 +88,31 @@ class _ProfessionalDetailScreenState
     }
   }
 
+  Color _colorBtnVinculo() {
+    switch (_statusVinculo) {
+      case 'PENDENTE':
+        return Colors.orange;
+
+      case 'ACEITO':
+        return NeoGymColors.success;
+
+      case 'RECUSADO':
+        return NeoGymColors.error;
+
+      case 'CANCELADO':
+        return Colors.grey;
+
+      default:
+        return NeoGymColors.primary;
+    }
+  }
+
   bool get _podeSolicitar {
     return _statusVinculo == null ||
         _statusVinculo == 'RECUSADO' ||
         _statusVinculo == 'CANCELADO';
   }
 
-  final VinculoService _vinculoService = VinculoService();
-
-  bool _solicitando = false;
-  String? _statusVinculo;
-  bool _carregandoVinculo = true;
 
   Future<void> _solicitarVinculo() async {
     setState(() {
@@ -234,7 +256,7 @@ class _ProfessionalDetailScreenState
                           ),
                           decoration: BoxDecoration(
                             color: widget.prof.isOnline
-                                ? Colors.green
+                                ?NeoGymColors.success
                                 : Colors.grey,
                             borderRadius: BorderRadius.circular(20),
                           ),
@@ -286,6 +308,9 @@ class _ProfessionalDetailScreenState
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _colorBtnVinculo(),
+                        ),
                         onPressed: _carregandoVinculo ||
                             _solicitando ||
                             !_podeSolicitar
@@ -312,45 +337,33 @@ class _ProfessionalDetailScreenState
 
                     const SizedBox(height: 20),
 
+                    // SOBRE
+
                     const Text(
-                      "Sobre",
+                      'Sobre',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
 
-                    const SizedBox(height: 5),
+                    const SizedBox(height: 8),
 
-                    const Text(
-                      "Profissional com experiência em treino personalizado, foco em hipertrofia e emagrecimento.",
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    const Text(
-                      "Especialidades",
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+                    Text(
+                      widget.prof.apresentacao.trim().isEmpty
+                          ? 'Este profissional ainda não adicionou uma apresentação.'
+                          : widget.prof.apresentacao,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        height: 1.5,
                       ),
                     ),
 
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 24),
 
-                    Wrap(
-                      spacing: 8,
-                      children: const [
-                        Chip(label: Text("Hipertrofia")),
-                        Chip(label: Text("Emagrecimento")),
-                        Chip(label: Text("Funcional")),
-                      ],
-                    ),
-
-                    const SizedBox(height: 20),
-
+                    // ESPECIALIDADE PRINCIPAL
                     const Text(
-                      "Horários disponíveis",
+                      'Especialidade principal',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -359,23 +372,111 @@ class _ProfessionalDetailScreenState
 
                     const SizedBox(height: 10),
 
-                    Wrap(
-                      spacing: 8,
-                      children: [
-                        OutlinedButton(
-                          onPressed: () {},
-                          child: const Text("08:00"),
-                        ),
-                        OutlinedButton(
-                          onPressed: () {},
-                          child: const Text("10:00"),
-                        ),
-                        OutlinedButton(
-                          onPressed: () {},
-                          child: const Text("18:00"),
-                        ),
-                      ],
+                    Text(
+                      widget.prof.specialty.trim().isEmpty
+                          ? 'Especialidade não informada.'
+                          : widget.prof.specialty,
+                      style: const TextStyle(
+                        color: Colors.grey,
+                        fontSize: 14,
+                      ),
                     ),
+
+                    const SizedBox(height: 24),
+
+                    // ÁREAS DE ATUAÇÃO
+                    const Text(
+                      'Áreas de atuação',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+
+                    const SizedBox(height: 10),
+
+                    if (widget.prof.areasAtuacao.isEmpty)
+                      const Text(
+                        'As áreas de atuação ainda não foram informadas.',
+                        style: TextStyle(color: Colors.grey),
+                      )
+                    else
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        children: widget.prof.areasAtuacao
+                            .map(
+                              (area) => Chip(
+                            label: Text(area),
+                          ),
+                        )
+                            .toList(),
+                      ),
+
+                    const SizedBox(height: 24),
+
+                    // GALERIA DE FOTOS
+                    GaleriaFotosPublicas(
+                      usuarioId: widget.prof.usuarioId,
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // HORÁRIOS DISPONÍVEIS
+                    const Text(
+                      'Horários disponíveis',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+
+                    const SizedBox(height: 10),
+
+                    if (widget.prof.horariosDisponiveis.isEmpty)
+                      const Text(
+                        'Horários ainda não informados.',
+                        style: TextStyle(color: Colors.grey),
+                      )
+                    else
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        children: widget.prof.horariosDisponiveis.map(
+                              (horario) => Chip(
+                            avatar: const Icon(
+                              Icons.access_time,
+                              size: 16,
+                            ),
+                            label: Text(horario),
+                          ),
+                        ).toList(),
+                      ),
+
+                    const SizedBox(height: 20),
+
+
+                    if (widget.prof.horariosDisponiveis.isEmpty)
+                      const Text(
+                        'Horários ainda não informados.',
+                        style: TextStyle(color: Colors.grey),
+                      )
+                    else
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        children: widget.prof.horariosDisponiveis
+                            .map(
+                              (horario) => Chip(
+                            avatar: const Icon(
+                              Icons.access_time,
+                              size: 16,
+                            ),
+                            label: Text(horario),
+                          ),
+                        )
+                            .toList(),
+                      ),
 
                     const SizedBox(height: 20),
                   ],

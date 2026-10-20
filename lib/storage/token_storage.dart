@@ -7,16 +7,54 @@ class TokenStorage {
     required String accessToken,
     required String refreshToken,
   }) async {
-    await _storage.write(key: 'access_token', value: accessToken);
-    await _storage.write(key: 'refresh_token', value: refreshToken);
+    await _storage.write(
+      key: 'access_token',
+      value: accessToken,
+    );
+
+    await _storage.write(
+      key: 'refresh_token',
+      value: refreshToken,
+    );
   }
 
   static Future<String?> getAccessToken() async {
-    return await _storage.read(key: 'access_token');
+    return await _storage.read(
+      key: 'access_token',
+    );
   }
 
   static Future<String?> getRefreshToken() async {
-    return await _storage.read(key: 'refresh_token');
+    return await _storage.read(
+      key: 'refresh_token',
+    );
+  }
+
+  static Future<void> deleteAccessToken() async {
+    await _storage.delete(key: 'access_token');
+  }
+
+  // =========================
+  // USUÁRIO LOGADO
+  // =========================
+
+  static Future<void> saveUserId(int usuarioId) async {
+    await _storage.write(
+      key: 'usuario_id',
+      value: usuarioId.toString(),
+    );
+  }
+
+  static Future<int?> getUserId() async {
+    final value = await _storage.read(
+      key: 'usuario_id',
+    );
+
+    if (value == null) {
+      return null;
+    }
+
+    return int.tryParse(value);
   }
 
   static Future<void> clear() async {

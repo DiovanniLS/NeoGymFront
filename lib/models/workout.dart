@@ -1,37 +1,53 @@
-import 'dart:math';
-
-import 'package:neogym/models/exercise.dart';
+import 'exercise.dart';
 
 class Workout {
-  final String  id;
-  String title;
-  List<Exercise> exercises;
+  final int? id;
+  final String title;
+  final int? alunoId;
+  final int? personalId;
+  final String? objective;
+  final int? duration;
+  final List<Exercise> exercises;
 
   Workout({
-    required this.id,
+    this.id,
     required this.title,
     required this.exercises,
+    this.alunoId,
+    this.personalId,
+    this.objective,
+    this.duration,
   });
+
+  factory Workout.fromJson(Map<String, dynamic> json) {
+    return Workout(
+      id: json['id'],
+      title: json['nome'] ?? '',
+      alunoId: json['alunoId'],
+      personalId: json['personalId'],
+      objective: json['objetivo'],
+      duration: json['duracao'],
+      exercises: (json['exercicios'] as List? ?? [])
+          .map(
+            (e) => Exercise.fromJson(
+          Map<String, dynamic>.from(e),
+        ),
+      )
+          .toList(),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'nome': title,
+      'alunoId': alunoId,
+      'personalId': personalId,
+      'objetivo': objective,
+      'duracao': duration,
+      'exercicios': exercises
+          .map((e) => e.toJson())
+          .toList(),
+    };
+  }
 }
-
-
-final List<Workout> workouts = [
-  Workout(
-    id: DateTime.now().toString(),
-    title: "Peito + Tríceps",
-    exercises: [
-      Exercise(name: "Supino reto", sets: 4, reps: 10),
-      Exercise(name: "Supino inclinado", sets: 3, reps: 12),
-      Exercise(name: "Tríceps corda", sets: 3, reps: 12),
-    ],
-  ),
-  Workout(
-    id: DateTime.now().toString(),
-    title: "Costas + Bíceps",
-    exercises: [
-      Exercise(name: "Puxada frontal", sets: 4, reps: 10),
-      Exercise(name: "Remada curvada", sets: 3, reps: 12),
-      Exercise(name: "Rosca direta", sets: 3, reps: 12),
-    ],
-  ),
-];

@@ -1,4 +1,3 @@
-  import 'dart:io';
 
   import 'package:dio/dio.dart';
   import '../models/login_response.dart';
@@ -31,7 +30,6 @@
       required String email,
       required String senha,
     }) async {
-
       final response = await dio.post(
         '/auth/login',
         data: {
@@ -45,6 +43,10 @@
       await TokenStorage.saveTokens(
         accessToken: loginResponse.accessToken,
         refreshToken: loginResponse.refreshToken,
+      );
+
+      await TokenStorage.saveUserId(
+        loginResponse.usuarioId,
       );
 
       return loginResponse;

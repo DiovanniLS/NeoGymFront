@@ -8,12 +8,13 @@ import 'package:neogym/Views/configuracoes.dart';
 import 'package:neogym/Views/profissionais.dart';
 import 'package:neogym/services/api_client.dart';
 import 'package:neogym/services/professional_service.dart';
-import 'package:neogym/view_model/AuthViewModel.dart';
-import 'package:neogym/view_model/chat_viewmodel.dart';
-import 'package:neogym/view_model/professional_viewmodel.dart';
-import 'package:neogym/views/professional_clients_screen.dart';
+import 'package:neogym/view_model/agendamento_view_model.dart';
+import 'package:neogym/view_model/auth_view_model.dart';
+import 'package:neogym/view_model/chat_view_model.dart';
+import 'package:neogym/view_model/professional_view_model.dart';
 import 'package:neogym/views/professional_home_screens/add_agenda_event.dart';
 import 'package:neogym/views/professional_home_screens/professional_agenda_screen.dart';
+import 'package:neogym/views/professional_home_screens/professional_clients_screen.dart';
 import 'package:neogym/views/professional_home_screens/professional_home_content.dart';
 import 'package:neogym/views/student_home_screens/activities_screen.dart';
 import 'package:neogym/views/student_home_screens/add_atividade.dart';
@@ -48,6 +49,9 @@ Future<void> main() async {
           create: (_) => ProfessionalViewModel(
             ProfessionalService(),
           ),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => AgendamentoViewModel(),
         ),
       ],
       child: const MyApp(),
