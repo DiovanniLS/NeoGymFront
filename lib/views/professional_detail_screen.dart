@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:neogym/views/professional_home_screens/galeria_profissional_screen.dart';
 
 import '../Resources/neo_gym_colors.dart';
+import '../components/foto_usuario.dart';
 import '../models/professional.dart';
 import '../services/vinculo_service.dart';
 
@@ -182,14 +183,15 @@ class _ProfessionalDetailScreenState
                 Container(
                   height: 260,
                   width: double.infinity,
-                  decoration: BoxDecoration(
-                    image: DecorationImage(
-                      image: NetworkImage(widget.prof.image),
-                      fit: BoxFit.cover,
-                    ),
+                  child: FotoUsuario(
+                    usuarioId: widget.prof.usuarioId,
+                    width: double.infinity,
+                    height: 260,
+                    borderRadius: 0,
+                    fit: BoxFit.cover,
+                    iconSize: 80,
                   ),
-                ),
-
+                  ),
                 Positioned(
                   top: 40,
                   left: 16,

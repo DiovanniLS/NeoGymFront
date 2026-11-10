@@ -1,19 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:neogym/Resources/neo_gym_colors.dart';
 
-class UniversalAppBar extends StatelessWidget implements PreferredSizeWidget {
+import 'foto_usuario.dart';
+
+class UniversalAppBar extends StatelessWidget
+    implements PreferredSizeWidget {
   final String title;
   final String? imageUrl;
+  final int? usuarioId;
   final Widget? leadingIcon;
   final bool showAvatar;
   final List<Widget>? actions;
+
   const UniversalAppBar({
     super.key,
     required this.title,
     this.imageUrl,
+    this.usuarioId,
     this.leadingIcon,
     this.showAvatar = false,
-    this.actions
+    this.actions,
   });
 
   @override
@@ -22,25 +28,33 @@ class UniversalAppBar extends StatelessWidget implements PreferredSizeWidget {
       backgroundColor: NeoGymColors.primary,
       elevation: 4,
       centerTitle: false,
-
       leading: leadingIcon,
       actions: actions,
       title: Row(
         children: [
-
           if (showAvatar) ...[
-            CircleAvatar(
-              radius: 18,
-              backgroundImage: (imageUrl != null && imageUrl!.isNotEmpty)
-                  ? NetworkImage(imageUrl!)
-                  : null,
-              child: (imageUrl == null || imageUrl!.isEmpty)
-                  ? const Icon(Icons.person, size: 18)
-                  : null,
-            ),
+            if (usuarioId != null)
+              FotoUsuario(
+                key: ValueKey(usuarioId),
+                usuarioId: usuarioId,
+                width: 36,
+                height: 36,
+                borderRadius: 1000,
+                iconSize: 20,
+              )
+            else
+              CircleAvatar(
+                radius: 18,
+                backgroundImage:
+                imageUrl != null && imageUrl!.isNotEmpty
+                    ? NetworkImage(imageUrl!)
+                    : null,
+                child: imageUrl == null || imageUrl!.isEmpty
+                    ? const Icon(Icons.person, size: 18)
+                    : null,
+              ),
             const SizedBox(width: 10),
           ],
-
           Expanded(
             child: Text(
               title,

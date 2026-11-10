@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'foto_usuario.dart';
+
 class ChatCard extends StatelessWidget {
   final String name;
   final String imageUrl;
@@ -7,6 +9,7 @@ class ChatCard extends StatelessWidget {
   final String time;
   final bool isOnline;
   final VoidCallback onTap;
+  final int? usuarioId;
 
   const ChatCard({
     super.key,
@@ -16,6 +19,7 @@ class ChatCard extends StatelessWidget {
     required this.time,
     required this.isOnline,
     required this.onTap,
+    this.usuarioId,
   });
 
   @override
@@ -38,9 +42,13 @@ class ChatCard extends StatelessWidget {
               // 🧑 Avatar + status
               Stack(
                 children: [
-                  CircleAvatar(
-                    radius: 25,
-                    backgroundImage: NetworkImage(imageUrl),
+                  FotoUsuario(
+                    key: ValueKey(usuarioId),
+                    usuarioId: usuarioId,
+                    width: 52,
+                    height: 52,
+                    borderRadius: 1000,
+                    iconSize: 26,
                   ),
 
                   if (isOnline)

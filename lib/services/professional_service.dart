@@ -66,21 +66,23 @@ class ProfessionalService {
           profissional['horariosDisponiveis'],
         );
 
+
         return Professional.fromMap({
           'id': profissional['id']?.toString() ?? '',
           'usuarioId': profissional['usuarioId'],
           'name': profissional['nome'] ?? '',
           'email': profissional['email'] ?? '',
 
-          // Especialidade real cadastrada pelo profissional.
           'specialty': profissional['especialidade'] ?? '',
 
-          // Dados adicionais do perfil.
           'apresentacao': profissional['apresentacao'] ?? '',
           'areasAtuacao': areas,
           'horariosDisponiveis': horarios,
 
-          // Dados complementares já utilizados pelo aplicativo.
+          // Coordenadas retornadas pela API.
+          'lat': profissional['lat'] ?? profissional['latitude'],
+          'lng': profissional['lng'] ?? profissional['longitude'],
+
           'rating': 0.0,
           'distance':
           (profissional['distanciaKm'] as num?)?.toDouble() ?? 0.0,

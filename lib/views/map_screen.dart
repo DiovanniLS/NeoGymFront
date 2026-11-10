@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:neogym/Views/professional_detail_screen.dart';
 import 'package:provider/provider.dart';
 
 import '../Resources/neo_gym_colors.dart';
+import '../components/foto_usuario.dart';
 import '../models/gym.dart';
 import '../models/professional.dart';
 import '../services/location_service.dart';
@@ -127,6 +129,93 @@ class _MapScreenState extends State<MapScreen> {
             'Verifique a permissão e tente novamente.';
       });
     }
+  }
+
+
+  bool _temCoordenadas(Professional prof) {
+    final lat = prof.lat;
+    final lng = prof.lng;
+
+    return lat != null &&
+        lng != null &&
+        lat.isFinite &&
+        lng.isFinite &&
+        lat >= -90 &&
+        lat <= 90 &&
+        lng >= -180 &&
+        lng <= 180 &&
+        !(lat == 0 && lng == 0);
+  }
+
+  Future<void> _abrirPerfilProfissional(
+      Professional prof,
+      ) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ProfessionalDetailScreen(
+          prof: prof,
+        ),
+      ),
+    );
+  }
+
+  Marker _buildProfessionalMarker(Professional prof) {
+    return Marker(
+      point: LatLng(
+        prof.lat!,
+        prof.lng!,
+      ),
+      width: 56,
+      height: 56,
+      child: GestureDetector(
+        onTap: () => _abrirPerfilProfissional(prof),
+        child: Container(
+          decoration: BoxDecoration(
+            color: NeoGymColors.primary,
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: Colors.white,
+              width: 3,
+            ),
+            boxShadow: const [
+              BoxShadow(
+                color: Colors.black26,
+                blurRadius: 6,
+                offset: Offset(0, 2),
+              ),
+            ],
+          ),
+          child: FotoUsuario(
+          usuarioId: prof.usuarioId,
+          width: 48,
+          height: 48,
+        ),
+        ),
+      ),
+    );
+  }
+
+
+
+  Future<void> _voltarParaTodasAcademias() async {
+    if (userLocation == null) return;
+
+    // Limpa a pesquisa e a academia selecionada.
+    searchController.clear();
+
+    setState(() {
+      selectedGym = null;
+      gymLocation = null;
+
+      polylines = [];
+      circles = [];
+
+      distance = null;
+      duration = null;
+    });
+
+    // Recarrega as academias próximas.
+    await loadGymMode();
   }
 
   // ==========================================================
@@ -381,6 +470,32 @@ class _MapScreenState extends State<MapScreen> {
         markers = gymMarkers;
         loading = false;
       });
+
+      if (mapReady && gyms.isNotEmpty) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted || !mapReady) return;
+
+          final coordinates = <LatLng>[
+            userLocation!,
+            ...gyms.map(
+                  (gym) => LatLng(gym.lat, gym.lng),
+            ),
+          ];
+
+          mapController.fitCamera(
+            CameraFit.coordinates(
+              coordinates: coordinates,
+              padding: const EdgeInsets.fromLTRB(
+                40,
+                170,
+                40,
+                250,
+              ),
+              maxZoom: 14,
+            ),
+          );
+        });
+      }
     } catch (e) {
       debugPrint('Erro ao carregar academias: $e');
 
@@ -402,6 +517,7 @@ class _MapScreenState extends State<MapScreen> {
   // MODO PROFISSIONAIS
   // ==========================================================
 
+
   Future<void> loadProfessionalMode() async {
     if (userLocation == null) return;
 
@@ -418,7 +534,6 @@ class _MapScreenState extends State<MapScreen> {
       duration = null;
 
       nearbyProfessionals = [];
-
       markers = [
         _buildUserMarker(userLocation!),
       ];
@@ -431,18 +546,90 @@ class _MapScreenState extends State<MapScreen> {
 
       if (!mounted) return;
 
+      final profissionais = [...viewModel.professionals]
+        ..sort(
+              (a, b) => a.distance.compareTo(b.distance),
+        );
+
+      final profissionaisComCoordenadas = profissionais
+          .where(_temCoordenadas)
+          .toList();
+
+      final professionalMarkers = <Marker>[
+        _buildUserMarker(userLocation!),
+        ...profissionaisComCoordenadas.map(
+          _buildProfessionalMarker,
+        ),
+      ];
+
       setState(() {
-        nearbyProfessionals = [...viewModel.professionals]
-          ..sort((a, b) => a.distance.compareTo(b.distance));
-
-        markers = [
-          _buildUserMarker(userLocation!),
-        ];
-
+        nearbyProfessionals = profissionais;
+        markers = professionalMarkers;
         loading = false;
       });
-    } catch (e) {
-      debugPrint('Erro ao carregar profissionais: $e');
+
+      debugPrint(
+        'Profissionais carregados: ${profissionais.length}',
+      );
+
+      debugPrint(
+        'Profissionais com coordenadas: '
+            '${profissionaisComCoordenadas.length}',
+      );
+
+      for (final prof in profissionais) {
+        debugPrint(
+          '${prof.name}: lat=${prof.lat}, lng=${prof.lng}',
+        );
+      }
+
+      if (profissionais.isNotEmpty &&
+          profissionaisComCoordenadas.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Os profissionais foram encontrados, mas a API '
+                  'não retornou suas coordenadas para o mapa.',
+            ),
+          ),
+        );
+
+        return;
+      }
+
+      if (mapReady && profissionaisComCoordenadas.isNotEmpty) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted || !mapReady) return;
+
+          final coordinates = <LatLng>[
+            userLocation!,
+            ...profissionaisComCoordenadas.map(
+                  (prof) => LatLng(
+                prof.lat!,
+                prof.lng!,
+              ),
+            ),
+          ];
+
+          mapController.fitCamera(
+            CameraFit.coordinates(
+              coordinates: coordinates,
+              padding: const EdgeInsets.fromLTRB(
+                40,
+                140,
+                40,
+                230,
+              ),
+              maxZoom: 14,
+            ),
+          );
+        });
+      }
+    } catch (e, stackTrace) {
+      debugPrint(
+        'Erro ao carregar profissionais: $e',
+      );
+      debugPrintStack(stackTrace: stackTrace);
 
       if (!mounted) return;
 
@@ -452,7 +639,9 @@ class _MapScreenState extends State<MapScreen> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Não foi possível carregar os profissionais.'),
+          content: Text(
+            'Não foi possível carregar os profissionais.',
+          ),
         ),
       );
     }
@@ -603,8 +792,12 @@ class _MapScreenState extends State<MapScreen> {
                       (prof) => ListTile(
                     contentPadding: EdgeInsets.zero,
                     dense: true,
-                    leading: const CircleAvatar(
-                      child: Icon(Icons.fitness_center),
+                    leading: CircleAvatar(
+                      child: Icon(
+                        prof.type.toLowerCase() == 'personal'
+                            ? Icons.fitness_center
+                            : Icons.restaurant_menu,
+                      ),
                     ),
                     title: Text(
                       prof.name,
@@ -624,6 +817,7 @@ class _MapScreenState extends State<MapScreen> {
                         fontWeight: FontWeight.w600,
                       ),
                     ),
+                    onTap: () => _abrirPerfilProfissional(prof),
                   ),
                 ),
             ],
@@ -973,37 +1167,20 @@ class _MapScreenState extends State<MapScreen> {
   // ==========================================================
 
   Widget buildBottomCard() {
-    String message =
-        'Academia próxima 💪';
+    String message = 'Academia próxima 💪';
 
-    if (distance != null) {
-      /*
-       * O novo service devolve algo como:
-       *
-       * 1.5 km
-       * 850 m
-       */
+    if (distance != null && distance!.contains('km')) {
+      final number = distance!
+          .replaceAll('km', '')
+          .trim();
 
-      if (distance!.contains('km')) {
-        final number =
-        distance!
-            .replaceAll(
-          'km',
-          '',
-        )
-            .trim();
+      final km = double.tryParse(number);
 
-        final km =
-        double.tryParse(number);
-
-        if (km != null) {
-          if (km > 5) {
-            message =
-            'Tá longe, mas bora manter o foco 🔥';
-          } else if (km > 2) {
-            message =
-            'Distância média, já dá um aquecimento 😅';
-          }
+      if (km != null) {
+        if (km > 5) {
+          message = 'Tá longe, mas bora manter o foco 🔥';
+        } else if (km > 2) {
+          message = 'Distância média, já dá um aquecimento 😅';
         }
       }
     }
@@ -1012,59 +1189,30 @@ class _MapScreenState extends State<MapScreen> {
       bottom: 50,
       left: 16,
       right: 16,
-
       child: Card(
-        shape:
-        RoundedRectangleBorder(
-          borderRadius:
-          BorderRadius.circular(
-            20,
-          ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
         ),
-
         elevation: 10,
-
         child: Padding(
-          padding:
-          const EdgeInsets.all(
-            16,
-          ),
-
+          padding: const EdgeInsets.all(16),
           child: Column(
-            mainAxisSize:
-            MainAxisSize.min,
-
-            crossAxisAlignment:
-            CrossAxisAlignment
-                .center,
-
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-
               Row(
                 children: [
-
                   const Icon(
-                    Icons
-                        .fitness_center,
+                    Icons.fitness_center,
                     size: 28,
                   ),
-
-                  const SizedBox(
-                    width: 10,
-                  ),
-
+                  const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      selectedGym
-                          ?.name ??
+                      selectedGym?.name ??
                           'Selecione uma academia',
-
-                      style:
-                      const TextStyle(
-                        fontWeight:
-                        FontWeight
-                            .bold,
-
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
                         fontSize: 16,
                       ),
                     ),
@@ -1072,42 +1220,45 @@ class _MapScreenState extends State<MapScreen> {
                 ],
               ),
 
-              if (selectedGym != null)
-                ...[
-                  const SizedBox(
-                    height: 8,
+              if (selectedGym != null) ...[
+                const SizedBox(height: 8),
+
+                // NOVO: permite desfazer a seleção.
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    onPressed: loading
+                        ? null
+                        : _voltarParaTodasAcademias,
+                    icon: const Icon(Icons.arrow_back),
+                    label: const Text('Ver todas as academias'),
                   ),
+                ),
 
-                  Text(
-                    '${distance ?? '--'}'
-                        ' • '
-                        '${duration ?? '--'}',
+                const SizedBox(height: 4),
 
-                    style: TextStyle(
-                      color: Colors
-                          .grey[600],
-                    ),
+                Text(
+                  '${distance ?? '--'} • ${duration ?? '--'}',
+                  style: TextStyle(
+                    color: Colors.grey[600],
                   ),
+                ),
 
-                  const SizedBox(
-                    height: 8,
+                const SizedBox(height: 8),
+
+                Text(message),
+
+                const SizedBox(height: 10),
+
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: _fitCamera,
+                    icon: const Icon(Icons.directions),
+                    label: const Text('Centralizar rota'),
                   ),
-
-                  Text(message),
-
-                  const SizedBox(
-                    height: 10,
-                  ),
-
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: _fitCamera,
-                      icon: const Icon(Icons.directions),
-                      label: const Text('Centralizar rota'),
-                    ),
-                  ),
-                ],
+                ),
+              ],
             ],
           ),
         ),

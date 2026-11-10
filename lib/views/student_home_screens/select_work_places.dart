@@ -405,7 +405,7 @@ class _SelectWorkPlacesState extends State<SelectWorkPlaces> {
                   Navigator
                       .pushReplacementNamed(
                     context,
-                    '/homePro',
+                    '/home',
                   );
                 },
 

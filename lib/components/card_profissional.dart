@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 
+import 'foto_usuario.dart';
+
 class ProfessionalCard extends StatelessWidget {
+  final int usuarioId;
+
   final String name;
   final String specialty;
   final double rating;
@@ -13,6 +17,7 @@ class ProfessionalCard extends StatelessWidget {
 
   const ProfessionalCard({
     super.key,
+    required this.usuarioId,
     required this.name,
     required this.specialty,
     required this.rating,
@@ -38,14 +43,18 @@ class ProfessionalCard extends StatelessWidget {
             padding: const EdgeInsets.all(14),
             child: Row(
               children: [
-
                 Stack(
                   children: [
-                    CircleAvatar(
-                      radius: 28,
-                      backgroundImage: NetworkImage(imageUrl),
+                    ClipOval(
+                      child: FotoUsuario(
+                        key: ValueKey(usuarioId),
+                        usuarioId: usuarioId,
+                        width: 56,
+                        height: 56,
+                        borderRadius: 1000,
+                        iconSize: 28,
+                      ),
                     ),
-
                     Positioned(
                       bottom: 2,
                       right: 2,
@@ -53,9 +62,14 @@ class ProfessionalCard extends StatelessWidget {
                         width: 10,
                         height: 10,
                         decoration: BoxDecoration(
-                          color: isOnline ? Colors.green : Colors.grey,
+                          color: isOnline
+                              ? Colors.green
+                              : Colors.grey,
                           shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 2),
+                          border: Border.all(
+                            color: Colors.white,
+                            width: 2,
+                          ),
                         ),
                       ),
                     ),
@@ -70,6 +84,8 @@ class ProfessionalCard extends StatelessWidget {
                     children: [
                       Text(
                         name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
@@ -80,22 +96,36 @@ class ProfessionalCard extends StatelessWidget {
 
                       Text(
                         specialty,
-                        style: TextStyle(color: Colors.grey[600]),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                        ),
                       ),
 
                       const SizedBox(height: 6),
 
                       Row(
                         children: [
-                          const Icon(Icons.star, size: 16, color: Colors.orange),
+                          const Icon(
+                            Icons.star,
+                            size: 16,
+                            color: Colors.orange,
+                          ),
                           const SizedBox(width: 4),
                           Text(rating.toString()),
 
                           const SizedBox(width: 10),
 
-                          const Icon(Icons.location_on, size: 16, color: Colors.grey),
+                          const Icon(
+                            Icons.location_on,
+                            size: 16,
+                            color: Colors.grey,
+                          ),
                           const SizedBox(width: 4),
-                          Text("${distance.toStringAsFixed(1)} km"),
+                          Text(
+                            '${distance.toStringAsFixed(1)} km',
+                          ),
                         ],
                       ),
                     ],
@@ -104,7 +134,10 @@ class ProfessionalCard extends StatelessWidget {
 
                 IconButton(
                   onPressed: onChat,
-                  icon: const Icon(Icons.chat_bubble_outline),
+                  tooltip: 'Conversar',
+                  icon: const Icon(
+                    Icons.chat_bubble_outline,
+                  ),
                 ),
               ],
             ),

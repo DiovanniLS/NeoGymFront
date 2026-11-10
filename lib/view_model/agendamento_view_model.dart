@@ -31,6 +31,35 @@ class AgendamentoViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> concluirAgendamento(int id) async {
+    // Persiste a conclusão pela API.
+    await _service.concluirAgendamento(id);
+
+    // Atualiza a lista com os dados persistidos no backend.
+    await carregarAgendamentos();
+  }
+
+  Future<Agendamento> criarAgendamento({
+    required int alunoId,
+    required String tipoProfissional,
+    required String titulo,
+    String? descricao,
+    required DateTime dataHora,
+  }) async {
+    final criado = await _service.criarAgendamento(
+      alunoId: alunoId,
+      tipoProfissional: tipoProfissional,
+      titulo: titulo,
+      descricao: descricao,
+      dataHora: dataHora,
+    );
+
+    await carregarAgendamentos();
+
+    return criado;
+  }
+
+
   Future<void> carregarAgendamentos() async {
     _loading = true;
     _error = null;

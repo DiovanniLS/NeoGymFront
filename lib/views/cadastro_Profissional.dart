@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:neogym/components/cadastro_stepper.dart';
 import 'package:neogym/components/input_field.dart';
 
@@ -25,6 +28,11 @@ class _CadastroProfissionalState extends State<CadastroProfissional> {
   final TextEditingController registerValue = TextEditingController();
   final TextEditingController stateRegisterValue = TextEditingController();
 
+  final ImagePicker _imagePicker = ImagePicker();
+
+  File? identityDocument;
+  File? professionalDocument;
+
   bool isPasswordVisible = false;
   bool isLoading = false;
 
@@ -43,19 +51,253 @@ class _CadastroProfissionalState extends State<CadastroProfissional> {
     super.dispose();
   }
 
+  Future<void> selecionarImagem({
+    required bool isIdentity,
+  }) async {
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Escolher da galeria'),
+              onTap: () => Navigator.pop(
+                context,
+                ImageSource.gallery,
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text('Tirar foto'),
+              onTap: () => Navigator.pop(
+                context,
+                ImageSource.camera,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (source == null) return;
+
+    try {
+      final XFile? imagem = await _imagePicker.pickImage(
+        source: source,
+        imageQuality: 85,
+        maxWidth: 2400,
+        maxHeight: 2400,
+      );
+
+      if (imagem == null) return;
+
+      final arquivo = File(imagem.path);
+      final tamanho = await arquivo.length();
+
+      if (tamanho > 5 * 1024 * 1024) {
+        mostrarMensagem(
+          'A imagem deve ter no máximo 5 MB.',
+        );
+        return;
+      }
+
+      if (!mounted) return;
+
+      setState(() {
+        if (isIdentity) {
+          identityDocument = arquivo;
+        } else {
+          professionalDocument = arquivo;
+        }
+      });
+    } catch (_) {
+      if (!mounted) return;
+
+      mostrarMensagem(
+        'Não foi possível selecionar a imagem.',
+      );
+    }
+  }
+
+  Widget stepTwo() {
+    final documentosSelecionados =
+        identityDocument != null &&
+            professionalDocument != null;
+
+    return Column(
+      key: const ValueKey(2),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Text(
+          'Envie seus documentos para validação',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 8),
+        const Text(
+          'As imagens serão utilizadas para validar '
+              'sua identidade e seu registro profissional.',
+        ),
+        const SizedBox(height: 20),
+        documentoCard(
+          titulo: 'Documento de identidade',
+          descricao: 'RG ou CNH',
+          arquivo: identityDocument,
+          onSelecionar: () => selecionarImagem(
+            isIdentity: true,
+          ),
+        ),
+        documentoCard(
+          titulo: widget.proType == 'Nutri'
+              ? 'Comprovante do CRN'
+              : 'Comprovante do CREF',
+          descricao: 'Imagem do registro profissional',
+          arquivo: professionalDocument,
+          onSelecionar: () => selecionarImagem(
+            isIdentity: false,
+          ),
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          height: 50,
+          child: ElevatedButton(
+            onPressed: isLoading || !documentosSelecionados
+                ? null
+                : finalizarCadastro,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: NeoGymColors.primary,
+            ),
+            child: isLoading
+                ? const CircularProgressIndicator(
+              color: Colors.white,
+              strokeWidth: 2,
+            )
+                : const Text('Enviar cadastro'),
+          ),
+        ),
+      ],
+    );
+  }
+
+
+  Widget documentoCard({
+    required String titulo,
+    required String descricao,
+    required File? arquivo,
+    required VoidCallback onSelecionar,
+  }) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16),
+      child: InkWell(
+        onTap: onSelecionar,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.image_outlined),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          titulo,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          arquivo == null
+                              ? descricao
+                              : 'Imagem selecionada',
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(
+                    arquivo == null
+                        ? Icons.add_a_photo_outlined
+                        : Icons.check_circle,
+                    color: arquivo == null
+                        ? Colors.grey
+                        : Colors.green,
+                  ),
+                ],
+              ),
+              if (arquivo != null) ...[
+                const SizedBox(height: 12),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.file(
+                    arquivo,
+                    height: 180,
+                    width: double.infinity,
+                    fit: BoxFit.contain,
+                  ),
+                ),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton.icon(
+                    onPressed: onSelecionar,
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Trocar imagem'),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   bool validarStepOne() {
-    if (nameValue.text.isEmpty ||
-        emailValue.text.isEmpty ||
-        passValue.text.isEmpty ||
-        rememberValue.text.isEmpty ||
-        registerValue.text.isEmpty ||
-        stateRegisterValue.text.isEmpty) {
-      mostrarMensagem('Preencha todos os campos');
+    final nome = nameValue.text.trim();
+    final email = emailValue.text.trim();
+    final senha = passValue.text;
+    final confirmarSenha = rememberValue.text;
+    final registro = registerValue.text.trim();
+    final uf = stateRegisterValue.text.trim().toUpperCase();
+
+    if (nome.isEmpty ||
+        email.isEmpty ||
+        senha.isEmpty ||
+        confirmarSenha.isEmpty ||
+        registro.isEmpty ||
+        uf.isEmpty) {
+      mostrarMensagem('Preencha todos os campos.');
       return false;
     }
 
-    if (passValue.text != rememberValue.text) {
-      mostrarMensagem('As senhas não coincidem');
+    final emailValido = RegExp(
+      r'^[^@\s]+@[^@\s]+\.[^@\s]+$',
+    ).hasMatch(email);
+
+    if (!emailValido) {
+      mostrarMensagem('Informe um e-mail válido.');
+      return false;
+    }
+
+    if (senha.length < 8) {
+      mostrarMensagem('A senha deve ter pelo menos 8 caracteres.');
+      return false;
+    }
+
+    if (senha != confirmarSenha) {
+      mostrarMensagem('As senhas não coincidem.');
+      return false;
+    }
+
+    if (!RegExp(r'^[A-Za-z]{2}$').hasMatch(uf)) {
+      mostrarMensagem('Informe uma UF válida, como SP.');
       return false;
     }
 
@@ -69,23 +311,36 @@ class _CadastroProfissionalState extends State<CadastroProfissional> {
   }
 
   Future<void> finalizarCadastro() async {
-    try {
-      setState(() => isLoading = true);
+    if (identityDocument == null || professionalDocument == null) {
+      mostrarMensagem('Envie os dois documentos para continuar.');
+      return;
+    }
 
+    FocusScope.of(context).unfocus();
+
+    setState(() => isLoading = true);
+
+    try {
       await authService.cadastrarProfissional(
         isNutri: widget.proType == 'Nutri',
         nome: nameValue.text.trim(),
-        email: emailValue.text.trim(),
-        senha: passValue.text.trim(),
+        email: emailValue.text.trim().toLowerCase(),
+        senha: passValue.text,
         registro: registerValue.text.trim(),
-        estadoRegistro: stateRegisterValue.text.trim(),
+        estadoRegistro: stateRegisterValue.text.trim().toUpperCase(),
+        identidade: identityDocument!,
+        documentoProfissional: professionalDocument!,
       );
 
       if (!mounted) return;
 
-      Navigator.pushNamed(context, "/selectWorkPlace");
+      Navigator.pushNamed(context, '/selectWorkPlace');
     } catch (e) {
-      mostrarMensagem('Erro ao cadastrar');
+      if (!mounted) return;
+
+      mostrarMensagem(
+        'Não foi possível cadastrar o profissional. Verifique os dados e tente novamente.',
+      );
     } finally {
       if (mounted) {
         setState(() => isLoading = false);
@@ -153,7 +408,9 @@ class _CadastroProfissionalState extends State<CadastroProfissional> {
                       );
                     },
 
-                    child: stepOne(),
+                    child: currentStep == 1
+                        ? stepOne()
+                        : stepTwo(),
                   ),
                 ],
               ),
@@ -262,10 +519,14 @@ class _CadastroProfissionalState extends State<CadastroProfissional> {
           child: ElevatedButton(
             onPressed: isLoading
                 ? null
-                : () async {
+                : () {
               if (!validarStepOne()) return;
 
-              await finalizarCadastro();
+              FocusScope.of(context).unfocus();
+
+              setState(() {
+                currentStep = 2;
+              });
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: NeoGymColors.primary,
@@ -281,177 +542,4 @@ class _CadastroProfissionalState extends State<CadastroProfissional> {
       ],
     );
   }
-
-// ======================================================
-// 📁 DOCUMENTOS (DESATIVADO TEMPORARIAMENTE)
-// ======================================================
-
-// File? identityDocument;
-// File? professionalDocument;
-
-// final ImagePicker picker = ImagePicker();
-
-/// 📸 Seleção de documentos (CÂMERA / GALERIA)
-/*
-Future<void> pickDocument(
-  bool isIdentity,
-  ImageSource source,
-) async {
-
-  final XFile? image = await picker.pickImage(
-    source: source,
-    imageQuality: 70,
-  );
-
-  if (image == null) return;
-
-  final file = File(image.path);
-
-  final fileSize = await file.length();
-  final fileSizeMb = fileSize / (1024 * 1024);
-
-  if (fileSizeMb > 5) {
-    mostrarMensagem('Imagem muito grande');
-    return;
-  }
-
-  setState(() {
-    if (isIdentity) {
-      identityDocument = file;
-    } else {
-      professionalDocument = file;
-    }
-  });
-}
-*/
-
-/// 🚀 FINALIZAR CADASTRO (UPLOAD DOCUMENTOS)
-/*
-Future<void> finalizarCadastro() async {
-
-  if (identityDocument == null ||
-      professionalDocument == null) {
-
-    mostrarMensagem('Envie os documentos');
-    return;
-  }
-
-  try {
-    setState(() {
-      isLoading = true;
-    });
-
-    await authService.cadastrarProfissional(
-      isNutri: widget.proType == 'Nutri',
-
-      nome: nameValue.text.trim(),
-      email: emailValue.text.trim(),
-      senha: passValue.text.trim(),
-
-      registro: registerValue.text.trim(),
-      estadoRegistro: stateRegisterValue.text.trim(),
-
-      identidade: identityDocument!,
-      documentoProfissional: professionalDocument!,
-    );
-
-    if (!mounted) return;
-
-    Navigator.pushNamed(context, "/selectWorkPlace");
-
-  } catch (e) {
-    mostrarMensagem('Erro ao cadastrar');
-  } finally {
-    if (mounted) {
-      setState(() {
-        isLoading = false;
-      });
-    }
-  }
-}
-*/
-
-/// 📌 STEP 2 (TELA DE UPLOAD)
-/*
-Widget stepTwo() {
-  return Column(
-    children: [
-
-      const Text("Envie seus documentos para validação"),
-
-      uploadCard(
-        icon: Icons.badge,
-        title: "RG ou CNH",
-        subtitle: "Foto do documento de identidade",
-        file: identityDocument,
-        onTap: () => showImageSourceSelector(true),
-      ),
-
-      uploadCard(
-        icon: Icons.assignment_ind,
-        title: widget.proType == 'Nutri'
-            ? "Registro CRN"
-            : "Registro CREF",
-        subtitle: widget.proType == 'Nutri'
-            ? "Documento profissional do nutricionista"
-            : "Documento profissional do personal trainer",
-        file: professionalDocument,
-        onTap: () => showImageSourceSelector(false),
-      ),
-
-      SizedBox(
-        width: double.infinity,
-        height: 50,
-        child: ElevatedButton(
-          onPressed: isLoading ? null : finalizarCadastro,
-          child: const Text("Finalizar cadastro"),
-        ),
-      ),
-    ],
-  );
-}
-*/
-
-/// 🧱 CARD DE UPLOAD
-/*
-Widget uploadCard({
-  required IconData icon,
-  required String title,
-  required String subtitle,
-  required File? file,
-  required VoidCallback onTap,
-}) {
-  return InkWell(
-    onTap: onTap,
-    child: Card(
-      child: Row(
-        children: [
-
-          Icon(icon),
-
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-
-                Text(title),
-
-                Text(
-                  file != null
-                      ? "Documento enviado ✅"
-                      : subtitle,
-                ),
-              ],
-            ),
-          ),
-
-          file != null
-              ? Image.file(file, width: 50, height: 50)
-              : const Icon(Icons.upload_file),
-        ],
-      ),
-    ),
-  );
-}
-*/
 }

@@ -7,17 +7,46 @@ class PerfilProfissionalService {
   PerfilProfissionalService([Dio? dio])
       : _dio = dio ?? ApiClient.dio;
 
-  Future<Map<String, dynamic>> buscarMeuPerfil() async {
+  String _endpoint(bool isNutricionista) {
+    return isNutricionista
+        ? '/nutricionistas/me'
+        : '/personais/me';
+  }
+
+  String _mensagemErro(
+      DioException e,
+      String mensagemPadrao,
+      ) {
+    final data = e.response?.data;
+
+    if (data is Map) {
+      final mensagem = data['message'] ??
+          data['mensagem'] ??
+          data['error'];
+
+      if (mensagem != null) {
+        return mensagem.toString();
+      }
+    }
+
+    return mensagemPadrao;
+  }
+
+  Future<Map<String, dynamic>> buscarMeuPerfil({
+    bool isNutricionista = false,
+  }) async {
     try {
-      final response = await _dio.get('/personais/me');
+      final response = await _dio.get(
+        _endpoint(isNutricionista),
+      );
 
       return Map<String, dynamic>.from(response.data);
     } on DioException catch (e) {
       throw Exception(
-        e.response?.data is Map
-            ? e.response?.data['message'] ??
-            'Não foi possível carregar o perfil profissional.'
-            : 'Não foi possível carregar o perfil profissional.',
+        _mensagemErro(
+          e,
+          'Não foi possível carregar o perfil profissional.',
+        ),
       );
     }
   }
@@ -27,10 +56,11 @@ class PerfilProfissionalService {
     required String apresentacao,
     required String areasAtuacao,
     required String horariosDisponiveis,
+    bool isNutricionista = false,
   }) async {
     try {
       final response = await _dio.put(
-        '/personais/me',
+        _endpoint(isNutricionista),
         data: {
           'especialidade': especialidade,
           'apresentacao': apresentacao,
@@ -42,10 +72,10 @@ class PerfilProfissionalService {
       return Map<String, dynamic>.from(response.data);
     } on DioException catch (e) {
       throw Exception(
-        e.response?.data is Map
-            ? e.response?.data['message'] ??
-            'Não foi possível salvar o perfil profissional.'
-            : 'Não foi possível salvar o perfil profissional.',
+        _mensagemErro(
+          e,
+          'Não foi possível salvar o perfil profissional.',
+        ),
       );
     }
   }

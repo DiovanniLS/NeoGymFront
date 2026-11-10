@@ -8,6 +8,7 @@ import 'package:neogym/services/auth_service.dart';
 import 'package:provider/provider.dart';
 
 import '../models/user_model.dart';
+import '../services/chat_notifications_service.dart';
 import '../view_model/auth_view_model.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -34,10 +35,17 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> loginAnonimo() async {
     try {
-      await FirebaseAuth.instance.signInAnonymously();
-      print("Login anônimo feito");
+      final auth = FirebaseAuth.instance;
+
+      if (auth.currentUser == null) {
+        await auth.signInAnonymously();
+      }
+
+      debugPrint(
+        'Firebase autenticado: ${auth.currentUser?.uid != null}',
+      );
     } catch (e) {
-      print("Erro login anônimo: $e");
+      debugPrint('Erro no login anônimo do Firebase: $e');
     }
   }
   @override
@@ -46,6 +54,7 @@ class _LoginScreenState extends State<LoginScreen> {
     passValue.dispose();
     super.dispose();
   }
+
 
   Future<void> fazerLogin() async {
     FocusScope.of(context).unfocus();
@@ -64,7 +73,6 @@ class _LoginScreenState extends State<LoginScreen> {
         senha: passValue.text.trim(),
       );
 
-
       final user = UserModel(
         usuarioId: loginResponse.usuarioId,
         nome: loginResponse.nome,
@@ -72,33 +80,55 @@ class _LoginScreenState extends State<LoginScreen> {
         tipo: loginResponse.tipo,
       );
 
+      // Atualiza o usuário autenticado no NeoGym.
       context.read<AuthViewModel>().setUser(user);
 
-      Navigator.pushReplacementNamed(context, '/home');
+      // Registra o dispositivo para receber notificações.
+      // Uma falha nas notificações não deve impedir o login.
+      try {
+        await ChatNotificationsService.registrarDispositivo();
 
+        debugPrint(
+          'Dispositivo registrado para notificações do NeoGym.',
+        );
+      } catch (e, stackTrace) {
+        debugPrint(
+          'Não foi possível registrar as notificações: $e',
+        );
+        debugPrintStack(stackTrace: stackTrace);
+      }
+
+      // Continua o fluxo normal de login.
+      if (!mounted) return;
+
+      Navigator.pushReplacementNamed(context, '/home');
     } on DioException catch (e) {
       final data = e.response?.data;
 
       String msg = 'Erro ao fazer login';
 
       if (data is Map && data['message'] != null) {
-        msg = data['message'];
+        msg = data['message'].toString();
       } else if (e.message != null) {
         msg = e.message!;
       }
 
-
-      mostrarMensagem(msg);
-
+      if (mounted) {
+        mostrarMensagem(msg);
+      }
     } catch (e) {
+      debugPrint('Erro inesperado no login: $e');
 
-      mostrarMensagem('Erro inesperado');
+      if (mounted) {
+        mostrarMensagem('Erro inesperado');
+      }
     } finally {
       if (mounted) {
         setState(() => isLoading = false);
       }
     }
   }
+
 
   void mostrarMensagem(String mensagem) {
     ScaffoldMessenger.of(context).showSnackBar(

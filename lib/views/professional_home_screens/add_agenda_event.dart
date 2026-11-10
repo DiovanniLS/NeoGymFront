@@ -1,11 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 
 import 'package:neogym/Resources/neo_gym_colors.dart';
 import 'package:neogym/components/universal_app_bar.dart';
 import 'package:neogym/models/agenda_event.dart';
+import 'package:neogym/models/client_status.dart';
+import 'package:neogym/models/professional_client.dart';
+import 'package:neogym/services/vinculo_service.dart';
+import 'package:neogym/view_model/agendamento_view_model.dart';
+import 'package:neogym/view_model/auth_view_model.dart';
+
+import 'package:provider/provider.dart';
 
 class AddAgendaEvent extends StatefulWidget {
+  // Mantido para compatibilidade com os antigos pontos de navegação.
+  // A API atual não possui endpoint para editar agendamentos.
   final AgendaEvent? event;
 
   const AddAgendaEvent({
@@ -18,86 +26,125 @@ class AddAgendaEvent extends StatefulWidget {
 }
 
 class _AddAgendaEventState extends State<AddAgendaEvent> {
-  final titleController = TextEditingController();
-  final observationController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+  final _tituloController = TextEditingController();
+  final _descricaoController = TextEditingController();
 
-  DateTime selectedDate = DateTime.now();
+  final VinculoService _vinculoService = VinculoService();
 
-  String? selectedClient;
+  List<ProfessionalClient> _alunos = [];
+  ProfessionalClient? _alunoSelecionado;
 
-  EventType selectedType = EventType.training;
+  DateTime _dataSelecionada = DateTime.now().add(
+    const Duration(hours: 1),
+  );
 
-  int selectedDuration = 60;
+  bool _carregandoAlunos = true;
+  bool _salvando = false;
+  String? _erroAlunos;
 
-  // Depois isso pode vir da API
-  final List<String> clients = [
-    "Lucas Almeida",
-    "Ana Souza",
-    "Marcos Silva",
-    "Juliana Santos",
-  ];
-
-  final List<int> durations = [
-    30,
-    45,
-    60,
-    90,
-    120,
-  ];
+  bool get _modoLegado => widget.event != null;
 
   @override
   void initState() {
     super.initState();
 
-    final event = widget.event;
+    _carregarAlunos();
 
-    if (event != null) {
-      titleController.text = event.title;
-      observationController.text = event.observation ?? "";
-
-      selectedClient = event.clientName;
-      selectedDate = event.dateTime;
-      selectedType = event.type;
-      selectedDuration = event.durationMinutes;
+    if (widget.event != null) {
+      _tituloController.text = widget.event!.title;
+      _descricaoController.text = widget.event!.observation ?? '';
+      _dataSelecionada = widget.event!.dateTime;
     }
   }
 
   @override
   void dispose() {
-    titleController.dispose();
-    observationController.dispose();
-
+    _tituloController.dispose();
+    _descricaoController.dispose();
     super.dispose();
   }
 
-  Future<void> pickDate() async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: selectedDate,
-      firstDate: DateTime.now(),
-      lastDate: DateTime(2100),
-    );
+  Future<void> _carregarAlunos() async {
+    setState(() {
+      _carregandoAlunos = true;
+      _erroAlunos = null;
+    });
 
-    if (picked != null) {
-      setState(() {
-        selectedDate = DateTime(
-          picked.year,
-          picked.month,
-          picked.day,
-          selectedDate.hour,
-          selectedDate.minute,
+    try {
+      final resultado = await _vinculoService.buscarAlunosVinculados();
+
+      if (!mounted) return;
+
+      // O backend de criação do Personal exige vínculo ativo.
+      final ativos = resultado
+          .where((aluno) => aluno.status == ClientStatus.active)
+          .toList()
+        ..sort(
+              (a, b) => a.name.toLowerCase().compareTo(
+            b.name.toLowerCase(),
+          ),
         );
+
+      setState(() {
+        _alunos = ativos;
+        _carregandoAlunos = false;
+
+        final nomeLegado = widget.event?.clientName;
+        if (nomeLegado != null) {
+          for (final aluno in ativos) {
+            if (aluno.name == nomeLegado) {
+              _alunoSelecionado = aluno;
+              break;
+            }
+          }
+        }
+      });
+    } catch (e, stackTrace) {
+      debugPrint('Erro ao carregar alunos vinculados: $e');
+      debugPrintStack(stackTrace: stackTrace);
+
+      if (!mounted) return;
+
+      setState(() {
+        _carregandoAlunos = false;
+        _erroAlunos = 'Não foi possível carregar os alunos vinculados.';
       });
     }
   }
 
-  Future<void> pickTime() async {
-    final picked = await showTimePicker(
+  Future<void> _selecionarData() async {
+    final agora = DateTime.now();
+    final hoje = DateTime(agora.year, agora.month, agora.day);
+
+    final inicial = _dataSelecionada.isBefore(hoje)
+        ? hoje
+        : _dataSelecionada;
+
+    final data = await showDatePicker(
       context: context,
-      initialTime: TimeOfDay(
-        hour: selectedDate.hour,
-        minute: selectedDate.minute,
-      ),
+      initialDate: inicial,
+      firstDate: hoje,
+      lastDate: DateTime(2100),
+    );
+
+    if (data == null || !mounted) return;
+
+    setState(() {
+      _dataSelecionada = DateTime(
+        data.year,
+        data.month,
+        data.day,
+        _dataSelecionada.hour,
+        _dataSelecionada.minute,
+      );
+    });
+  }
+
+  Future<void> _selecionarHorario() async {
+    final horario = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(_dataSelecionada),
       builder: (context, child) {
         return MediaQuery(
           data: MediaQuery.of(context).copyWith(
@@ -108,428 +155,279 @@ class _AddAgendaEventState extends State<AddAgendaEvent> {
       },
     );
 
-    if (picked != null) {
-      setState(() {
-        selectedDate = DateTime(
-          selectedDate.year,
-          selectedDate.month,
-          selectedDate.day,
-          picked.hour,
-          picked.minute,
-        );
-      });
-    }
-  }
+    if (horario == null || !mounted) return;
 
-  String formatSmartDate(DateTime date) {
-    final now = DateTime.now();
-
-    final today = DateTime(
-      now.year,
-      now.month,
-      now.day,
-    );
-
-    final selected = DateTime(
-      date.year,
-      date.month,
-      date.day,
-    );
-
-    final tomorrow = today.add(
-      const Duration(days: 1),
-    );
-
-    if (selected == today) {
-      return "Hoje";
-    }
-
-    if (selected == tomorrow) {
-      return "Amanhã";
-    }
-
-    return DateFormat(
-      "dd/MM/yyyy",
-      "pt_BR",
-    ).format(date);
-  }
-
-  String formatTimeBR(DateTime date) {
-    return DateFormat(
-      "HH:mm",
-      "pt_BR",
-    ).format(date);
-  }
-
-  String eventTypeLabel(EventType type) {
-    switch (type) {
-      case EventType.training:
-        return "Treino";
-
-      case EventType.evaluation:
-        return "Avaliação física";
-
-      case EventType.consultation:
-        return "Consulta";
-
-      case EventType.other:
-        return "Outro";
-    }
-  }
-
-  IconData eventTypeIcon(EventType type) {
-    switch (type) {
-      case EventType.training:
-        return Icons.fitness_center;
-
-      case EventType.evaluation:
-        return Icons.assignment_outlined;
-
-      case EventType.consultation:
-        return Icons.medical_information_outlined;
-
-      case EventType.other:
-        return Icons.event_outlined;
-    }
-  }
-
-  void saveEvent() {
-    if (selectedClient == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            "Selecione um aluno",
-          ),
-        ),
+    setState(() {
+      _dataSelecionada = DateTime(
+        _dataSelecionada.year,
+        _dataSelecionada.month,
+        _dataSelecionada.day,
+        horario.hour,
+        horario.minute,
       );
+    });
+  }
 
+  String _formatarData(DateTime data) {
+    final agora = DateTime.now();
+    final hoje = DateTime(agora.year, agora.month, agora.day);
+    final selecionada = DateTime(data.year, data.month, data.day);
+
+    if (selecionada == hoje) return 'Hoje';
+
+    if (selecionada == hoje.add(const Duration(days: 1))) {
+      return 'Amanhã';
+    }
+
+    return '${data.day.toString().padLeft(2, '0')}/'
+        '${data.month.toString().padLeft(2, '0')}/'
+        '${data.year}';
+  }
+
+  String _formatarHorario(DateTime data) {
+    return '${data.hour.toString().padLeft(2, '0')}:'
+        '${data.minute.toString().padLeft(2, '0')}';
+  }
+
+  Future<void> _salvar() async {
+    if (_modoLegado) {
+      _mostrarMensagem(
+        'A edição ainda não está disponível na API de agendamentos.',
+      );
       return;
     }
 
-    if (titleController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            "Informe o nome da atividade",
-          ),
-        ),
-      );
+    if (!_formKey.currentState!.validate()) return;
 
+    final aluno = _alunoSelecionado;
+    if (aluno == null) {
+      _mostrarMensagem('Selecione um aluno.');
       return;
     }
 
-    final event = AgendaEvent(
-      id: widget.event?.id,
-      clientName: selectedClient!,
-      title: titleController.text.trim(),
-      dateTime: selectedDate,
-      durationMinutes: selectedDuration,
-      type: selectedType,
-      observation:
-      observationController.text.trim().isEmpty
-          ? null
-          : observationController.text.trim(),
-      completed: widget.event?.completed ?? false,
-    );
+    final usuario = context.read<AuthViewModel>().user;
+    if (usuario == null) {
+      _mostrarMensagem('Sua sessão expirou. Entre novamente.');
+      return;
+    }
 
-    Navigator.pop(
-      context,
-      event,
+    final tipo = usuario.tipo.toUpperCase();
+    if (tipo != 'PERSONAL' && tipo != 'NUTRICIONISTA') {
+      _mostrarMensagem(
+        'Somente profissionais podem criar atendimentos nesta tela.',
+      );
+      return;
+    }
+
+    if (_dataSelecionada.isBefore(DateTime.now())) {
+      _mostrarMensagem('Escolha uma data e horário futuros.');
+      return;
+    }
+
+    setState(() => _salvando = true);
+
+    try {
+      await context.read<AgendamentoViewModel>().criarAgendamento(
+        // Use o ID da tabela de aluno, não usuarioId.
+        alunoId: aluno.id,
+        tipoProfissional: tipo,
+        titulo: _tituloController.text.trim(),
+        descricao: _descricaoController.text.trim().isEmpty
+            ? null
+            : _descricaoController.text.trim(),
+        dataHora: _dataSelecionada,
+      );
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Atendimento criado com sucesso.'),
+        ),
+      );
+
+      Navigator.pop(context, true);
+    } catch (e, stackTrace) {
+      debugPrint('Erro ao criar agendamento: $e');
+      debugPrintStack(stackTrace: stackTrace);
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Não foi possível criar o atendimento. ${_mensagemErro(e)}',
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _salvando = false);
+      }
+    }
+  }
+
+  String _mensagemErro(Object erro) {
+    final texto = erro.toString();
+    return texto.length > 180 ? 'Confira os dados e tente novamente.' : texto;
+  }
+
+  void _mostrarMensagem(String mensagem) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(mensagem)),
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: UniversalAppBar(
-        title: widget.event != null
-            ? "Editar agendamento"
-            : "Novo agendamento",
+  InputDecoration _decoracao({
+    required String label,
+    required IconData icon,
+    String? hint,
+  }) {
+    final theme = Theme.of(context);
+
+    return InputDecoration(
+      labelText: label,
+      hintText: hint,
+      prefixIcon: Icon(
+        icon,
+        color: NeoGymColors.primary,
       ),
+      filled: true,
+      fillColor: theme.colorScheme.surface,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(15),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(15),
+        borderSide: BorderSide(
+          color: theme.colorScheme.outline.withValues(alpha: 0.3),
+        ),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(15),
+        borderSide: const BorderSide(
+          color: NeoGymColors.primary,
+          width: 1.5,
+        ),
+      ),
+    );
+  }
 
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _secao({
+    required String titulo,
+    required String subtitulo,
+    required IconData icon,
+    required List<Widget> children,
+  }) {
+    final theme = Theme.of(context);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(17),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(21),
+        border: Border.all(
+          color: theme.colorScheme.outline.withValues(alpha: 0.2),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
-              const Text(
-                "Aluno",
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: NeoGymColors.primary.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(13),
+                ),
+                child: Icon(
+                  icon,
+                  color: NeoGymColors.primary,
                 ),
               ),
-
-              const SizedBox(height: 8),
-
-              DropdownButtonFormField<String>(
-                value: selectedClient,
-                decoration: InputDecoration(
-                  hintText: "Selecione um aluno",
-                  prefixIcon: const Icon(
-                    Icons.person_outline,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                items: clients.map((client) {
-                  return DropdownMenuItem(
-                    value: client,
-                    child: Text(client),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    selectedClient = value;
-                  });
-                },
-              ),
-
-              const SizedBox(height: 20),
-
-              const Text(
-                "Atividade",
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-
-              const SizedBox(height: 8),
-
-              TextField(
-                controller: titleController,
-                decoration: InputDecoration(
-                  hintText: "Ex: Treino de superiores",
-                  prefixIcon: const Icon(
-                    Icons.edit_outlined,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 20),
-
-              const Text(
-                "Tipo",
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-
-              const SizedBox(height: 8),
-
-              DropdownButtonFormField<EventType>(
-                value: selectedType,
-                decoration: InputDecoration(
-                  prefixIcon: Icon(
-                    eventTypeIcon(selectedType),
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                items: EventType.values.map((type) {
-                  return DropdownMenuItem(
-                    value: type,
-                    child: Text(
-                      eventTypeLabel(type),
-                    ),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  if (value == null) return;
-
-                  setState(() {
-                    selectedType = value;
-                  });
-                },
-              ),
-
-              const SizedBox(height: 20),
-
-              const Text(
-                "Data e horário",
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-
-              const SizedBox(height: 8),
-
-              Row(
-                children: [
-                  Expanded(
-                    child: InkWell(
-                      borderRadius:
-                      BorderRadius.circular(12),
-                      onTap: pickDate,
-                      child: Container(
-                        height: 58,
-                        padding:
-                        const EdgeInsets.symmetric(
-                          horizontal: 14,
-                        ),
-                        decoration: BoxDecoration(
-                          borderRadius:
-                          BorderRadius.circular(12),
-                          border: Border.all(
-                            color: Colors.grey.shade400,
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.calendar_today_outlined,
-                            ),
-
-                            const SizedBox(width: 10),
-
-                            Expanded(
-                              child: Text(
-                                formatSmartDate(
-                                  selectedDate,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      titulo,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
-                  ),
-
-                  const SizedBox(width: 12),
-
-                  Expanded(
-                    child: InkWell(
-                      borderRadius:
-                      BorderRadius.circular(12),
-                      onTap: pickTime,
-                      child: Container(
-                        height: 58,
-                        padding:
-                        const EdgeInsets.symmetric(
-                          horizontal: 14,
-                        ),
-                        decoration: BoxDecoration(
-                          borderRadius:
-                          BorderRadius.circular(12),
-                          border: Border.all(
-                            color: Colors.grey.shade400,
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.access_time,
-                            ),
-
-                            const SizedBox(width: 10),
-
-                            Text(
-                              formatTimeBR(
-                                selectedDate,
-                              ),
-                            ),
-                          ],
-                        ),
+                    const SizedBox(height: 3),
+                    Text(
+                      subtitulo,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurface
+                            .withValues(alpha: 0.65),
                       ),
                     ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 20),
-
-              const Text(
-                "Duração",
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
+                  ],
                 ),
               ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          ...children,
+        ],
+      ),
+    );
+  }
 
-              const SizedBox(height: 8),
+  Widget _seletorDataHorario({
+    required String titulo,
+    required String valor,
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    final theme = Theme.of(context);
 
-              DropdownButtonFormField<int>(
-                value: selectedDuration,
-                decoration: InputDecoration(
-                  prefixIcon: const Icon(
-                    Icons.timer_outlined,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                items: durations.map((duration) {
-                  return DropdownMenuItem(
-                    value: duration,
-                    child: Text(
-                      formatDuration(duration),
+    return Material(
+      color: theme.colorScheme.surface,
+      borderRadius: BorderRadius.circular(15),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(15),
+        child: Container(
+          padding: const EdgeInsets.all(13),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(15),
+            border: Border.all(
+              color: theme.colorScheme.outline.withValues(alpha: 0.3),
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                icon,
+                color: NeoGymColors.primary,
+                size: 20,
+              ),
+              const SizedBox(width: 9),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      titulo,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.onSurface
+                            .withValues(alpha: 0.65),
+                      ),
                     ),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  if (value == null) return;
-
-                  setState(() {
-                    selectedDuration = value;
-                  });
-                },
-              ),
-
-              const SizedBox(height: 20),
-
-              const Text(
-                "Observação",
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-
-              const SizedBox(height: 8),
-
-              TextField(
-                controller: observationController,
-                maxLines: 4,
-                decoration: InputDecoration(
-                  hintText:
-                  "Adicione alguma observação sobre o atendimento...",
-                  alignLabelWithHint: true,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 32),
-
-              SizedBox(
-                width: double.infinity,
-                height: 52,
-                child: ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor:
-                    NeoGymColors.primary,
-                    foregroundColor:
-                    Colors.white,
-                  ),
-                  onPressed: saveEvent,
-                  icon: const Icon(
-                    Icons.check,
-                  ),
-                  label: Text(
-                    widget.event != null
-                        ? "Salvar alterações"
-                        : "Adicionar à agenda",
-                  ),
+                    const SizedBox(height: 5),
+                    Text(
+                      valor,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -539,23 +437,244 @@ class _AddAgendaEventState extends State<AddAgendaEvent> {
     );
   }
 
-  String formatDuration(int minutes) {
-    if (minutes < 60) {
-      return "$minutes minutos";
-    }
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
 
-    if (minutes == 60) {
-      return "1 hora";
-    }
+    return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
+      appBar: UniversalAppBar(
+        title: _modoLegado ? 'Editar atendimento' : 'Novo atendimento',
+      ),
+      body: SafeArea(
+        child: Form(
+          key: _formKey,
+          child: ListView(
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 30),
+            children: [
+              Container(
+                padding: const EdgeInsets.all(21),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [
+                      NeoGymColors.primary,
+                      NeoGymColors.primaryDark,
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(23),
+                ),
+                child: const Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      Icons.calendar_month_rounded,
+                      color: Colors.white,
+                      size: 34,
+                    ),
+                    SizedBox(height: 13),
+                    Text(
+                      'Agende um atendimento',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 23,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    SizedBox(height: 7),
+                    Text(
+                      'Escolha o aluno, defina o horário e registre os detalhes.',
+                      style: TextStyle(
+                        color: Colors.white,
+                        height: 1.45,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
 
-    if (minutes == 90) {
-      return "1 hora e 30 minutos";
-    }
+              if (_modoLegado) ...[
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(13),
+                  decoration: BoxDecoration(
+                    color: NeoGymColors.warning.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(13),
+                  ),
+                  child: const Text(
+                    'A edição de atendimentos existentes ainda não é suportada pelo backend.',
+                  ),
+                ),
+              ],
 
-    if (minutes == 120) {
-      return "2 horas";
-    }
+              const SizedBox(height: 20),
 
-    return "$minutes minutos";
+              _secao(
+                titulo: 'Informações',
+                subtitulo: 'Selecione o aluno e descreva o atendimento',
+                icon: Icons.assignment_outlined,
+                children: [
+                  if (_carregandoAlunos)
+                    const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(16),
+                        child: CircularProgressIndicator(),
+                      ),
+                    )
+                  else if (_erroAlunos != null)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(_erroAlunos!),
+                        TextButton.icon(
+                          onPressed: _carregarAlunos,
+                          icon: const Icon(Icons.refresh_rounded),
+                          label: const Text('Tentar novamente'),
+                        ),
+                      ],
+                    )
+                  else if (_alunos.isEmpty)
+                      const Text(
+                        'Nenhum aluno com vínculo ativo foi encontrado. '
+                            'Verifique seus vínculos antes de agendar.',
+                      )
+                    else
+                      DropdownButtonFormField<ProfessionalClient>(
+                        value: _alunoSelecionado,
+                        isExpanded: true,
+                        decoration: _decoracao(
+                          label: 'Aluno',
+                          icon: Icons.person_outline_rounded,
+                        ),
+                        items: _alunos.map((aluno) {
+                          return DropdownMenuItem<ProfessionalClient>(
+                            value: aluno,
+                            child: Text(
+                              aluno.name,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          );
+                        }).toList(),
+                        validator: (value) =>
+                        value == null ? 'Selecione um aluno.' : null,
+                        onChanged: _modoLegado
+                            ? null
+                            : (value) {
+                          setState(() {
+                            _alunoSelecionado = value;
+                          });
+                        },
+                      ),
+
+                  const SizedBox(height: 18),
+
+                  TextFormField(
+                    controller: _tituloController,
+                    enabled: !_modoLegado,
+                    textCapitalization: TextCapitalization.sentences,
+                    decoration: _decoracao(
+                      label: 'Título do atendimento',
+                      hint: 'Ex.: Treino de superiores',
+                      icon: Icons.edit_note_rounded,
+                    ),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Informe o título do atendimento.';
+                      }
+                      return null;
+                    },
+                  ),
+
+                  const SizedBox(height: 18),
+
+                  TextFormField(
+                    controller: _descricaoController,
+                    enabled: !_modoLegado,
+                    minLines: 3,
+                    maxLines: 5,
+                    textCapitalization: TextCapitalization.sentences,
+                    decoration: _decoracao(
+                      label: 'Descrição (opcional)',
+                      hint: 'Observações sobre o atendimento',
+                      icon: Icons.notes_rounded,
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 17),
+
+              _secao(
+                titulo: 'Data e horário',
+                subtitulo: 'Defina quando acontecerá',
+                icon: Icons.schedule_rounded,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _seletorDataHorario(
+                          titulo: 'Data',
+                          valor: _formatarData(_dataSelecionada),
+                          icon: Icons.calendar_today_rounded,
+                          onTap: _modoLegado ? () {} : _selecionarData,
+                        ),
+                      ),
+                      const SizedBox(width: 11),
+                      Expanded(
+                        child: _seletorDataHorario(
+                          titulo: 'Horário',
+                          valor: _formatarHorario(_dataSelecionada),
+                          icon: Icons.access_time_rounded,
+                          onTap: _modoLegado ? () {} : _selecionarHorario,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 24),
+
+              SizedBox(
+                height: 54,
+                child: FilledButton.icon(
+                  onPressed: _salvando ||
+                      _carregandoAlunos ||
+                      _erroAlunos != null ||
+                      _alunos.isEmpty ||
+                      _modoLegado
+                      ? null
+                      : _salvar,
+                  icon: _salvando
+                      ? const SizedBox(
+                    width: 19,
+                    height: 19,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                      : const Icon(Icons.check_rounded),
+                  label: Text(
+                    _salvando ? 'Salvando...' : 'Criar atendimento',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: NeoGymColors.primary,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

@@ -1,5 +1,8 @@
 
-  import 'package:dio/dio.dart';
+  import 'dart:convert';
+import 'dart:io';
+
+import 'package:dio/dio.dart';
   import '../models/login_response.dart';
   import '../storage/token_storage.dart';
   import 'api_client.dart';
@@ -59,66 +62,56 @@
       required String senha,
       required String registro,
       required String estadoRegistro,
-      //required File identidade,
-      //required File documentoProfissional,
+      required File identidade,
+      required File documentoProfissional,
     }) async {
-      try {
+      final Map<String, dynamic> dados = {
+        'nome': nome.trim(),
+        'email': email.trim(),
+        'senha': senha,
+        if (isNutri) ...{
+          'crn': registro.trim().toUpperCase(),
+          'estadoCrn': estadoRegistro.trim().toUpperCase(),
+        } else ...{
+          'cref': registro.trim().toUpperCase(),
+          'estadoCref': estadoRegistro.trim().toUpperCase(),
+        },
+      };
 
-        final formData = FormData.fromMap({
-          "nome": nome,
-          "email": email,
-          "senha": senha,
+      final formData = FormData.fromMap({
+        'dados': MultipartFile.fromString(
+          jsonEncode(dados),
+          contentType: DioMediaType.parse('application/json'),
+        ),
+        'documentoIdentidade': await MultipartFile.fromFile(
+          identidade.path,
+          filename: identidade.path.split(Platform.pathSeparator).last,
+        ),
+        'documentoProfissional': await MultipartFile.fromFile(
+          documentoProfissional.path,
+          filename: documentoProfissional.path
+              .split(Platform.pathSeparator)
+              .last,
+        ),
+      });
 
-          if (isNutri) "crn": registro,
-          if (!isNutri) "cref": registro,
+      final endpoint = isNutri
+          ? '/auth/cadastro/nutricionista'
+          : '/auth/cadastro/personal';
 
-          if (isNutri)
-            "estadoCrn": estadoRegistro,
-          if (!isNutri)
-            "estadoCref": estadoRegistro,
+      await dio.post(
+        endpoint,
+        data: formData,
+        options: Options(
+          contentType: Headers.multipartFormDataContentType,
+        ),
+      );
 
-         // "documentoIdentidade": await MultipartFile.fromFile(
-           // identidade.path,
-         //   contentType: DioMediaType("image", "jpeg"),
-         // ),
-
-         // "documentoProfissional": await MultipartFile.fromFile(
-        //    documentoProfissional.path,
-         //   contentType: DioMediaType("image", "jpeg"),
-        //  ),
-        });
-
-
-        final data = isNutri
-            ? {
-          "nome": nome,
-          "email": email,
-          "senha": senha,
-          "crn": registro,
-          "estadoCrn": estadoRegistro,
-        }
-            : {
-          "nome": nome,
-          "email": email,
-          "senha": senha,
-          "cref": registro,
-          "estadoCref": estadoRegistro,
-        };
-
-        await dio.post(
-          isNutri
-              ? '/auth/cadastro/nutricionista'
-              : '/auth/cadastro/personal',
-          data: data,
-        );
-
-      } on DioException catch (e) {
-        rethrow;
-      } catch (e, stack) {
-        print("💥 ERRO GERAL => $e");
-        print(stack);
-        rethrow;
-      }
+// Autentica o usuário após o cadastro.
+      await login(
+        email: email.trim(),
+        senha: senha,
+      );
     }
 
   }

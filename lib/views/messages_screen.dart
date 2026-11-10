@@ -181,6 +181,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
         return Padding(
           padding: const EdgeInsets.only(bottom: 10),
           child: ChatCard(
+            usuarioId: prof.usuarioId,
             name: prof.name,
             imageUrl: prof.image,
             lastMessage: "Toque para conversar...",
@@ -193,6 +194,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
                   builder: (_) => ChatScreen(
                     name: prof.name,
                     Image: prof.image,
+                    usuarioId: prof.usuarioId,
                     chatId: _gerarChatId(
                       usuarioLogadoId!,
                       prof.usuarioId,
@@ -201,7 +203,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
                 ),
               );
             },
-          ),
+          )
         );
       },
     );
@@ -243,6 +245,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
         return Padding(
           padding: const EdgeInsets.only(bottom: 10),
           child: ChatCard(
+            usuarioId: student.usuarioId,
             name: student.name,
             imageUrl: '',
             lastMessage: "Toque para conversar...",
@@ -255,6 +258,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
                   builder: (_) => ChatScreen(
                     name: student.name,
                     Image: '',
+                    usuarioId: student.usuarioId,
                     chatId: _gerarChatId(
                       usuarioLogadoId!,
                       student.usuarioId,
@@ -263,7 +267,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
                 ),
               );
             },
-          ),
+          )
         );
       },
     );

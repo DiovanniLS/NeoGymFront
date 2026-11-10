@@ -26,28 +26,50 @@ class AgendamentoService {
     await _dio.delete('/agendamentos/$id');
   }
 
+  Future<void> concluirAgendamento(int id) async {
+    await _dio.patch('/agendamentos/$id/concluir');
+  }
+
   Future<Agendamento> criarAgendamento({
-    required int profissionalId,
+    int? alunoId,
+    int? profissionalId,
     required String tipoProfissional,
     required String titulo,
     String? descricao,
     required DateTime dataHora,
   }) async {
+    // Exige exatamente um dos IDs, conforme o usuário que cria.
+    if ((alunoId == null) == (profissionalId == null)) {
+      throw ArgumentError(
+        'Informe alunoId ou profissionalId, mas não ambos.',
+      );
+    }
+
+    final dados = <String, dynamic>{
+      'tipoProfissional': tipoProfissional.toUpperCase(),
+      'titulo': titulo.trim(),
+      'descricao': descricao?.trim().isEmpty == true
+          ? null
+          : descricao?.trim(),
+      'dataHora': dataHora.toIso8601String(),
+    };
+
+    if (alunoId != null) {
+      dados['alunoId'] = alunoId;
+    } else {
+      dados['profissionalId'] = profissionalId;
+    }
+
     final response = await _dio.post(
       '/agendamentos',
-      data: {
-        'profissionalId': profissionalId,
-        'tipoProfissional': tipoProfissional,
-        'titulo': titulo,
-        'descricao': descricao,
-        'dataHora': dataHora.toIso8601String(),
-      },
+      data: dados,
     );
 
     return Agendamento.fromJson(
       Map<String, dynamic>.from(response.data),
     );
   }
+
 
   Future<List<Agendamento>> buscarAgendamentosDoAluno(
       int alunoId,
@@ -66,5 +88,4 @@ class AgendamentoService {
     )
         .toList();
   }
-
 }

@@ -13,6 +13,7 @@ class ChatScreen extends StatefulWidget {
   final String name;
   final String Image;
   final String chatId;
+  final int? usuarioId;
   final VoidCallback? onViewProfile;
 
   const ChatScreen({
@@ -20,6 +21,7 @@ class ChatScreen extends StatefulWidget {
     required this.name,
     required this.Image,
     required this.chatId,
+    this.usuarioId,
     this.onViewProfile,
   });
 
@@ -188,17 +190,16 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final user = context.watch<AuthViewModel>().user;
     return Scaffold(
       appBar: UniversalAppBar(
         title: widget.name,
         imageUrl: widget.Image,
+        usuarioId: widget.usuarioId,
         showAvatar: true,
         leadingIcon: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.pop(context),
         ),
-
         actions: [
           IconButton(icon: const Icon(Icons.call), onPressed: () {}),
           IconButton(icon: const Icon(Icons.videocam), onPressed: () {}),
@@ -317,13 +318,21 @@ class _ChatScreenState extends State<ChatScreen> {
                 final user = context.read<AuthViewModel>().user;
 
                 return ListView.builder(
+
                   reverse: true,
                   itemCount: messages.length,
                   itemBuilder: (context, index) {
                     final msg = messages[index];
                     final firebaseUid = FirebaseAuth.instance.currentUser?.uid;
-                    final isMe = msg.senderId == firebaseUid;
 
+                    final currentEmail = user?.email.trim().toLowerCase();
+                    final senderEmail = msg.senderEmail.trim().toLowerCase();
+
+                    final isMe =
+                        (firebaseUid != null && msg.senderId == firebaseUid) ||
+                            (currentEmail != null &&
+                                currentEmail.isNotEmpty &&
+                                senderEmail == currentEmail);
                     return GestureDetector(
                       onLongPress: isMe
                           ? () => _confirmarExclusao(msg)

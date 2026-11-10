@@ -70,6 +70,7 @@ class _ProfissionaisState extends State<Profissionais> {
                     final prof = filteredList[index];
 
                     return ProfessionalCard(
+                      usuarioId: prof.usuarioId,
                       name: prof.name,
                       specialty: prof.specialty,
                       rating: prof.rating,
@@ -81,8 +82,9 @@ class _ProfissionaisState extends State<Profissionais> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) =>
-                                ProfessionalDetailScreen(prof: prof),
+                            builder: (_) => ProfessionalDetailScreen(
+                              prof: prof,
+                            ),
                           ),
                         );
                       },

@@ -18,8 +18,7 @@ class EditarPerfilScreen extends StatefulWidget {
       _EditarPerfilScreenState();
 }
 
-class _EditarPerfilScreenState
-    extends State<EditarPerfilScreen> {
+class _EditarPerfilScreenState extends State<EditarPerfilScreen> {
   final nomeController = TextEditingController();
   final emailController = TextEditingController();
   final especialidadeController = TextEditingController();
@@ -30,16 +29,20 @@ class _EditarPerfilScreenState
   final PerfilProfissionalService _perfilProfissionalService =
   PerfilProfissionalService();
 
-  bool _ehPersonal = false;
-
-  String cref = '';
-  String estadoCref = '';
-  String statusCref = '';
-
-  final UsuarioService _usuarioService =
-  UsuarioService();
+  final UsuarioService _usuarioService = UsuarioService();
 
   final ImagePicker _imagePicker = ImagePicker();
+
+  bool _ehPersonal = false;
+  bool _ehNutricionista = false;
+
+  bool get _ehProfissional => _ehPersonal || _ehNutricionista;
+
+  String get _nomeRegistro => _ehNutricionista ? 'CRN' : 'CREF';
+
+  String registroProfissional = '';
+  String estadoRegistro = '';
+  String statusRegistro = '';
 
   Uint8List? foto;
   String? caminhoFotoSelecionada;
@@ -50,21 +53,17 @@ class _EditarPerfilScreenState
   @override
   void initState() {
     super.initState();
-
     _carregarPerfil();
   }
 
   Future<void> _carregarPerfil() async {
-    final authViewModel =
-    context.read<AuthViewModel>();
-
+    final authViewModel = context.read<AuthViewModel>();
     final usuario = authViewModel.user;
 
-    _ehPersonal = usuario?.tipo
-        .toString()
-        .toUpperCase()
-        .contains('PERSONAL') ??
-        false;
+    final tipo = usuario?.tipo.toString().toUpperCase() ?? '';
+
+    _ehPersonal = tipo.contains('PERSONAL');
+    _ehNutricionista = tipo.contains('NUTRICIONISTA');
 
     if (usuario != null) {
       nomeController.text = usuario.nome;
@@ -72,27 +71,21 @@ class _EditarPerfilScreenState
     }
 
     try {
-      final imagem =
-      await _usuarioService.buscarFoto();
-
-      if (!mounted) return;
-
-      setState(() {
-        foto = imagem;
-        carregando = false;
-      });
+      foto = await _usuarioService.buscarFoto();
     } catch (e) {
-      if (!mounted) return;
-
-      setState(() {
-        carregando = false;
-      });
+      debugPrint('Erro ao carregar foto do usuário: $e');
     }
 
-    if (_ehPersonal) {
+    if (!mounted) return;
+
+    if (_ehProfissional) {
       try {
         final perfil =
-        await _perfilProfissionalService.buscarMeuPerfil();
+        await _perfilProfissionalService.buscarMeuPerfil(
+          isNutricionista: _ehNutricionista,
+        );
+
+        if (!mounted) return;
 
         especialidadeController.text =
             perfil['especialidade']?.toString() ?? '';
@@ -106,10 +99,18 @@ class _EditarPerfilScreenState
         horariosDisponiveisController.text =
             perfil['horariosDisponiveis']?.toString() ?? '';
 
-        cref = perfil['cref']?.toString() ?? '';
-        estadoCref = perfil['estadoCref']?.toString() ?? '';
-        statusCref = perfil['statusCref']?.toString() ?? '';
+        if (_ehNutricionista) {
+          registroProfissional = perfil['crn']?.toString() ?? '';
+          estadoRegistro = perfil['estadoCrn']?.toString() ?? '';
+          statusRegistro = perfil['statusCrn']?.toString() ?? '';
+        } else {
+          registroProfissional = perfil['cref']?.toString() ?? '';
+          estadoRegistro = perfil['estadoCref']?.toString() ?? '';
+          statusRegistro = perfil['statusCref']?.toString() ?? '';
+        }
       } catch (e) {
+        debugPrint('Erro ao carregar perfil profissional: $e');
+
         if (mounted) {
           _mostrarMensagem(
             'Não foi possível carregar os dados profissionais.',
@@ -117,49 +118,57 @@ class _EditarPerfilScreenState
         }
       }
     }
-  }
-
-  Future<void> _selecionarFoto() async {
-    final arquivo =
-    await _imagePicker.pickImage(
-      source: ImageSource.gallery,
-      imageQuality: 85,
-      maxWidth: 1200,
-    );
-
-    if (arquivo == null) {
-      return;
-    }
-
-    final bytes = await arquivo.readAsBytes();
 
     if (!mounted) return;
 
     setState(() {
-      caminhoFotoSelecionada = arquivo.path;
-      foto = bytes;
+      carregando = false;
     });
   }
 
+  Future<void> _selecionarFoto() async {
+    try {
+      final arquivo = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 85,
+        maxWidth: 1200,
+      );
+
+      if (arquivo == null || !mounted) return;
+
+      final bytes = await arquivo.readAsBytes();
+
+      if (!mounted) return;
+
+      setState(() {
+        caminhoFotoSelecionada = arquivo.path;
+        foto = bytes;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      _mostrarMensagem('Não foi possível selecionar a foto.');
+    }
+  }
+
   Future<void> _salvar() async {
+    if (salvando) return;
+
     final nome = nomeController.text.trim();
     final email = emailController.text.trim();
 
     if (nome.isEmpty) {
-      _mostrarMensagem(
-        'Informe seu nome.',
-      );
+      _mostrarMensagem('Informe seu nome.');
       return;
     }
 
     if (email.isEmpty) {
-      _mostrarMensagem(
-        'Informe seu e-mail.',
-      );
+      _mostrarMensagem('Informe seu e-mail.');
       return;
     }
 
-    if (_ehPersonal && especialidadeController.text.trim().isEmpty) {
+    if (_ehProfissional &&
+        especialidadeController.text.trim().isEmpty) {
       _mostrarMensagem('Informe sua especialidade principal.');
       return;
     }
@@ -168,15 +177,26 @@ class _EditarPerfilScreenState
       salvando = true;
     });
 
-
-
     try {
+      // Atualiza os dados básicos da conta.
       final usuarioAtualizado =
       await _usuarioService.atualizarPerfil(
         nome: nome,
         email: email,
       );
 
+      // Atualiza os dados específicos do profissional.
+      if (_ehProfissional) {
+        await _perfilProfissionalService.atualizarMeuPerfil(
+          especialidade: especialidadeController.text.trim(),
+          apresentacao: apresentacaoController.text.trim(),
+          areasAtuacao: areasAtuacaoController.text.trim(),
+          horariosDisponiveis: horariosDisponiveisController.text.trim(),
+          isNutricionista: _ehNutricionista,
+        );
+      }
+
+      // Envia a foto selecionada, se houver.
       if (caminhoFotoSelecionada != null) {
         await _usuarioService.atualizarFoto(
           caminhoFotoSelecionada!,
@@ -185,33 +205,23 @@ class _EditarPerfilScreenState
 
       if (!mounted) return;
 
-      context
-          .read<AuthViewModel>()
-          .setUser(usuarioAtualizado);
+      // Atualiza os dados do usuário mantidos no aplicativo.
+      context.read<AuthViewModel>().setUser(usuarioAtualizado);
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text(
-            'Perfil atualizado com sucesso.',
-          ),
+          content: Text('Perfil atualizado com sucesso.'),
         ),
       );
 
-      if (_ehPersonal) {
-        await _perfilProfissionalService.atualizarMeuPerfil(
-          especialidade: especialidadeController.text.trim(),
-          apresentacao: apresentacaoController.text.trim(),
-          areasAtuacao: areasAtuacaoController.text.trim(),
-          horariosDisponiveis: horariosDisponiveisController.text.trim(),
-        );
-      }
-
       Navigator.pop(context);
     } catch (e) {
+      debugPrint('Erro ao salvar perfil: $e');
+
       if (!mounted) return;
 
       _mostrarMensagem(
-        'Não foi possível atualizar o perfil.',
+        'Não foi possível atualizar o perfil. Verifique os dados e tente novamente.',
       );
     } finally {
       if (mounted) {
@@ -257,12 +267,9 @@ class _EditarPerfilScreenState
         child: Column(
           children: [
             GestureDetector(
-              onTap: salvando
-                  ? null
-                  : _selecionarFoto,
+              onTap: salvando ? null : _selecionarFoto,
               child: Stack(
-                alignment:
-                Alignment.bottomRight,
+                alignment: Alignment.bottomRight,
                 children: [
                   CircleAvatar(
                     radius: 50,
@@ -277,13 +284,10 @@ class _EditarPerfilScreenState
                         : null,
                   ),
                   Container(
-                    padding:
-                    const EdgeInsets.all(8),
-                    decoration:
-                    const BoxDecoration(
+                    padding: const EdgeInsets.all(8),
+                    decoration: const BoxDecoration(
                       color: Colors.blue,
-                      shape:
-                      BoxShape.circle,
+                      shape: BoxShape.circle,
                     ),
                     child: const Icon(
                       Icons.camera_alt,
@@ -310,11 +314,9 @@ class _EditarPerfilScreenState
             TextField(
               controller: nomeController,
               enabled: !salvando,
-              decoration:
-              const InputDecoration(
+              decoration: const InputDecoration(
                 labelText: 'Nome',
-                border:
-                OutlineInputBorder(),
+                border: OutlineInputBorder(),
               ),
             ),
 
@@ -323,20 +325,15 @@ class _EditarPerfilScreenState
             TextField(
               controller: emailController,
               enabled: !salvando,
-              keyboardType:
-              TextInputType.emailAddress,
-              decoration:
-              const InputDecoration(
+              keyboardType: TextInputType.emailAddress,
+              decoration: const InputDecoration(
                 labelText: 'E-mail',
-                border:
-                OutlineInputBorder(),
+                border: OutlineInputBorder(),
               ),
             ),
 
-            const SizedBox(height: 30),
-
-            if (_ehPersonal) ...[
-              const SizedBox(height: 28),
+            if (_ehProfissional) ...[
+              const SizedBox(height: 30),
 
               const Align(
                 alignment: Alignment.centerLeft,
@@ -354,10 +351,12 @@ class _EditarPerfilScreenState
               TextField(
                 controller: especialidadeController,
                 enabled: !salvando,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'Especialidade principal',
-                  hintText: 'Ex.: Musculação e hipertrofia',
-                  border: OutlineInputBorder(),
+                  hintText: _ehNutricionista
+                      ? 'Ex.: Nutrição esportiva'
+                      : 'Ex.: Musculação e hipertrofia',
+                  border: const OutlineInputBorder(),
                 ),
               ),
 
@@ -370,7 +369,8 @@ class _EditarPerfilScreenState
                 maxLength: 3000,
                 decoration: const InputDecoration(
                   labelText: 'Sobre você',
-                  hintText: 'Apresente sua experiência e metodologia.',
+                  hintText:
+                  'Apresente sua experiência e metodologia.',
                   alignLabelWithHint: true,
                   border: OutlineInputBorder(),
                 ),
@@ -383,12 +383,13 @@ class _EditarPerfilScreenState
                 enabled: !salvando,
                 maxLines: 3,
                 maxLength: 2000,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'Áreas de atuação',
-                  hintText:
-                  'Uma área por linha\nHipertrofia\nEmagrecimento\nTreinamento funcional',
+                  hintText: _ehNutricionista
+                      ? 'Uma área por linha\nNutrição esportiva\nReeducação alimentar'
+                      : 'Uma área por linha\nHipertrofia\nEmagrecimento\nTreinamento funcional',
                   alignLabelWithHint: true,
-                  border: OutlineInputBorder(),
+                  border: const OutlineInputBorder(),
                 ),
               ),
 
@@ -413,29 +414,33 @@ class _EditarPerfilScreenState
               Card(
                 child: ListTile(
                   leading: const Icon(Icons.badge_outlined),
-                  title: const Text('Registro profissional'),
+                  title: Text(
+                    'Registro profissional ($_nomeRegistro)',
+                  ),
                   subtitle: Text(
-                    cref.isEmpty
-                        ? 'CREF não informado'
-                        : '$cref${estadoCref.isEmpty ? '' : ' - $estadoCref'}',
+                    registroProfissional.isEmpty
+                        ? '$_nomeRegistro não informado'
+                        : '$registroProfissional'
+                        '${estadoRegistro.isEmpty ? '' : ' - $estadoRegistro'}',
                   ),
                   trailing: Text(
-                    statusCref.isEmpty ? 'Não informado' : statusCref,
+                    statusRegistro.isEmpty
+                        ? 'Não informado'
+                        : statusRegistro,
                     style: const TextStyle(fontSize: 12),
                   ),
                 ),
               ),
             ],
 
+            const SizedBox(height: 24),
+
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed:
-                salvando ? null : _salvar,
-                style:
-                ElevatedButton.styleFrom(
-                  minimumSize:
-                  const Size(
+                onPressed: salvando ? null : _salvar,
+                style: ElevatedButton.styleFrom(
+                  minimumSize: const Size(
                     double.infinity,
                     50,
                   ),
@@ -444,14 +449,11 @@ class _EditarPerfilScreenState
                     ? const SizedBox(
                   width: 22,
                   height: 22,
-                  child:
-                  CircularProgressIndicator(
+                  child: CircularProgressIndicator(
                     strokeWidth: 2,
                   ),
                 )
-                    : const Text(
-                  'Salvar alterações',
-                ),
+                    : const Text('Salvar alterações'),
               ),
             ),
           ],

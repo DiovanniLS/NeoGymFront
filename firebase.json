@@ -1,1 +1,38 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"neogym2026","appId":"1:740515266258:android:3fc1573430bd5bd01ef70b","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"neogym2026","configurations":{"android":"1:740515266258:android:3fc1573430bd5bd01ef70b"}}}}}}
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "neogym2026",
+          "appId": "1:740515266258:android:3fc1573430bd5bd01ef70b",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "neogym2026",
+          "configurations": {
+            "android": "1:740515266258:android:3fc1573430bd5bd01ef70b"
+          }
+        }
+      }
+    }
+  },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "disallowLegacyRuntimeConfig": true,
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ],
+      "predeploy": [
+        "npm --prefix \"$RESOURCE_DIR\" run lint"
+      ]
+    }
+  ]
+}
